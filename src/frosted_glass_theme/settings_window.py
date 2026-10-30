@@ -168,10 +168,9 @@ class WallpaperTab(QWidget):
         self.gallery.addItem(shuffle)
         choice = self.cfg["Image name for background"]
         for name in bg.wallpapers():
-            item = QListWidgetItem(_thumbnail(bg.thumbnail_path(name)), "")
+            item = QListWidgetItem(_thumbnail(os.path.join(bg.BG_DIR, name)), "")
             item.setData(Qt.ItemDataRole.UserRole, name)
-            note = bg.photo_note(name)
-            item.setToolTip(f"Photo by {(note.get('credit') or {}).get('name', '?')} on Unsplash" if note else name)
+            item.setToolTip(name)
             self.gallery.addItem(item)
         for i in range(self.gallery.count()):
             item = self.gallery.item(i)
@@ -264,8 +263,8 @@ class DownloadsTab(QWidget):
         form.addRow("Wallpaper style", kinds)
         layout.addLayout(form)
 
-        # professional: Unsplash topics
-        self.pro_box = QGroupBox("Professional photos from Unsplash")
+        # professional: Wallhaven General category, by topic
+        self.pro_box = QGroupBox("Professional photos")
         pro = QFormLayout(self.pro_box)
         topics = QHBoxLayout()
         self.topics = {}
@@ -278,15 +277,8 @@ class DownloadsTab(QWidget):
             self.topics[topic] = box
         topics.addStretch(1)
         pro.addRow("Topics", topics)
-        self.key = QLineEdit(str(self.cfg.get("unsplash_access_key") or ""))
-        self.key.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
-        self.key.setPlaceholderText("optional" if wf.UNSPLASH_APP_KEY else "needed: free from unsplash.com/developers")
-        self.key.setToolTip("Your own Unsplash 'Access Key'. Only needed if downloads stop because the "
-                            "add-on's shared key is busy.")
-        self.key.textChanged.connect(lambda t: self._set("unsplash_access_key", t.strip(), delay=800))
-        pro.addRow("Unsplash key", self.key)
-        pro.addRow(_hint("The photographer is credited in a corner of the deck list while their photo is "
-                         "showing, as Unsplash asks."))
+        pro.addRow(_hint("Safe-rated photos from Wallhaven's General category: scenery, cities, "
+                         "animals and the like, with no anime and no people."))
         layout.addWidget(self.pro_box)
 
         # anime: Konachan / Wallhaven, safe-rated only
@@ -380,8 +372,6 @@ class DownloadsTab(QWidget):
         from datetime import date
         today = state.get("count_today", 0) if state.get("last_date") == date.today().isoformat() else 0
         text = f"Downloaded today: {today}. Downloaded pictures of this style: {len(ours)}."
-        if not self.anime.isChecked() and not wf.unsplash_key(self.cfg):
-            text += " Add an Unsplash key above to get photos."
         self.status.setText(text)
 
     def _fetch(self):

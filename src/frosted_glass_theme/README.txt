@@ -4,8 +4,8 @@ https://github.com/aidansun525/liquid-glass-anki-theme
 
   * a wallpaper behind every Anki screen, lined up across the top bar,
     main screen and bottom bar (background.py)
-  * a few new wallpapers a day: professional photos from Unsplash, or
-    safe-rated anime art from Konachan / Wallhaven (wallpaper_fetcher/)
+  * a few new wallpapers a day: professional photos (Wallhaven General),
+    or anime art (Konachan / Wallhaven), safe-rated only (wallpaper_fetcher/)
   * a frosted-glass review card with a soft glow and piano note when you
     answer (frosted_glass/)
 
@@ -26,5 +26,5 @@ Background Image and Gear Icon by ijgnd and The AnKing
 (https://github.com/AnKing-VIP/Custom-background-image-and-gear-icon),
 which is AGPL v3 or later.
 The gear icons in user_files/default_gear are Noto Color Emoji (Apache 2.0).
-Unsplash photos are shown from Unsplash under the Unsplash License, with
-credit to each photographer.
+The built-in wallpapers in user_files/default_wallpapers are film photographs
+by AidanS.

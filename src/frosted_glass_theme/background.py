@@ -81,13 +81,8 @@ def _list(folder):
     except FileNotFoundError:
         return []
     return sorted(n for n in names
-                  if (n.lower().endswith(IMAGE_EXT) or _is_photo_note(n)) and n.lower() not in HIDDEN
+                  if n.lower().endswith(IMAGE_EXT) and n.lower() not in HIDDEN
                   and os.path.isfile(os.path.join(folder, n)))
-
-
-def _is_photo_note(name):
-    from . import wallpaper_fetcher as wf
-    return name.startswith(wf.UNSPLASH_PREFIX) and name.endswith(".json")
 
 
 def wallpapers():
@@ -168,44 +163,6 @@ def _url(folder, name):
     return f"/_addons/{ADDON}/user_files/{folder}/{name}"
 
 
-_notes = {}
-
-
-def photo_note(name):
-    """The saved details (address, credit) of an Unsplash photo, or None."""
-    if not name or not _is_photo_note(name):
-        return None
-    if name not in _notes:
-        from . import wallpaper_fetcher as wf
-        _notes[name] = wf.read_unsplash(os.path.join(BG_DIR, name))
-    return _notes[name]
-
-
-def picture_url(name):
-    """Where a wallpaper is loaded from: a file in user_files/background, or
-    (for Unsplash photos) Unsplash itself."""
-    note = photo_note(name)
-    if note:
-        return note["url"]
-    return _url("background", name)
-
-
-def _fallback():
-    """A built-in picture shown under an Unsplash photo while offline."""
-    for name in _list(BG_DIR):
-        if name.startswith("Default"):
-            return _url("background", name)
-    return None
-
-
-def thumbnail_path(name):
-    note = photo_note(name)
-    if note:
-        from . import wallpaper_fetcher as wf
-        return os.path.join(wf.THUMB_DIR, name[:-5] + ".jpg")
-    return os.path.join(BG_DIR, name)
-
-
 def _dim_color(alpha):
     """Anki's window color for the current theme, with the given alpha."""
     from aqt.theme import theme_manager
@@ -235,14 +192,8 @@ def css_for(screen, cfg=None):
     position = cfg["background-position"] or "center"
     color = cfg["background-color top" if screen == "top" else
                 "background-color bottom" if screen == "bottom" else "background-color main"]
-    image = f'url("{picture_url(name)}")' if name else "none"
+    image = f'url("{_url("background", name)}")' if name else "none"
     size = cfg["background-size"] or "cover"
-    fallback = _fallback() if photo_note(name) else None
-    if fallback and size == "cover":
-        # if Unsplash can't be reached (offline), a built-in picture shows instead
-        image = f'{image}, url("{fallback}")'
-        size = f"{size}, {size}"
-        position = f"{position}, {position}"
     if name and opacity < 1:
         # Dim with a layer of the window color drawn over the picture, rather
         # than by fading the picture into whatever is behind it. Each bar is a
@@ -268,7 +219,6 @@ body::before {{
   transition: background-image .5s ease, opacity .3s ease;
 }}"""
     if screen == "main":
-        css += CREDIT_CSS
         css += """
 .fancy table { backdrop-filter: none; }
 .current td, tr:hover:not(.top-level-drag-row) td { background: #e4e4e4ad; }
@@ -375,42 +325,12 @@ def on_main_window_ready():
     _watcher.watch()
 
 
-CREDIT_CSS = """
-#ast-credit { position: fixed; right: 10px; bottom: 6px; z-index: 5; font-size: 11px;
-  color: rgba(255,255,255,.72); text-shadow: 0 1px 2px rgba(0,0,0,.6); opacity: .8; }
-#ast-credit a { color: inherit; text-decoration: none; cursor: pointer; }
-#ast-credit a:hover { text-decoration: underline; }
-#ast-credit:empty { display: none; }"""
-
-
-def credit_html(name):
-    """Unsplash requires crediting the photographer while their photo is shown."""
-    note = photo_note(name)
-    if not note:
-        return ""
-    import html
-    c = note.get("credit") or {}
-    def link(url, text):
-        return (f"<a onclick='pycmd({html.escape(json.dumps('ast:open:' + str(url)))});return false;'>"
-                f"{html.escape(str(text))}</a>")
-    return f"Photo by {link(c.get('profile', ''), c.get('name', 'Unknown'))} on {link(c.get('unsplash', ''), 'Unsplash')}"
-
-
-def _credit_js(name):
-    inner = json.dumps(credit_html(name))
-    return ("(function(){var c=document.getElementById('ast-credit');"
-            "if(!c){c=document.createElement('div');c.id='ast-credit';document.body.appendChild(c);}"
-            f"c.innerHTML={inner};}})();")
-
-
 def on_will_set_content(web_content, context):
     screen = _screen_for(context)
     if not screen:
         return
     web = getattr(context, "web", None) or (mw.toolbarWeb if screen == "top" else mw.bottomWeb if screen == "bottom" else mw.web)
     web_content.head += f"<style id='{STYLE_ID}'>{css_for(screen)}</style><style>{_vars_css(web)}</style>"
-    if screen == "main":
-        web_content.body += f"<div id='ast-credit'>{credit_html(current_wallpaper())}</div>"
     custom = _custom_css(screen).strip()
     if custom:
         web_content.head += f"<style>{custom}</style>"
@@ -446,7 +366,7 @@ def _set_style_js(css, preload=None):
 def apply_live(cfg=None):
     """Re-style every open screen in place, without reloading anything."""
     name = current_wallpaper(cfg)
-    preload = picture_url(name) if name else None
+    preload = _url("background", name) if name else None
     main = {"review": "review", "deckBrowser": "main", "overview": "main"}.get(mw.state)
     targets = []
     if main:
@@ -458,8 +378,6 @@ def apply_live(cfg=None):
     for web, screen in targets:
         try:
             web.eval(_set_style_js(css_for(screen, cfg), preload))
-            if screen == "main":
-                web.eval(_credit_js(name))
         except Exception:
             pass
     sync_geometry()

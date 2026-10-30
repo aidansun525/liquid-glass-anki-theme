@@ -2,13 +2,10 @@
 
 ## Before the first release
 
-1. **Unsplash key.** At [unsplash.com/developers](https://unsplash.com/developers), click *New Application* and name it **Frosted Glass Anki**. Copy its **Access Key** (not the Secret Key) into `UNSPLASH_APP_KEY` in `src/frosted_glass_theme/wallpaper_fetcher/__init__.py`.
-   - A new app starts in *demo* mode, which allows 50 requests an hour shared by all users. Each user needs about one request a day.
-   - Once people are using the add-on, open the app's page and click **Apply for production** to get 5,000 requests an hour. Unsplash checks that photos load from Unsplash, that the photographer and Unsplash are credited, and that downloads are reported. The add-on already does all three. Their review asks for a screenshot of the credit, which you can take on the deck list while an Unsplash photo is showing.
-2. **Built-in wallpapers.** Replace the three files in `src/frosted_glass_theme/user_files/default_wallpapers/` if you like, keeping the `Default - ` prefix. Use only pictures you're allowed to share, such as your own or Unsplash photos (the Unsplash License allows this; credit the photographer in the README).
-3. **Version.** Set `human_version` in `src/frosted_glass_theme/manifest.json` and add a line to `CHANGELOG.md`.
-4. **Build.** Run `python build.py`, which writes `dist/frosted_glass_theme.ankiaddon`.
-5. **Test.** In Anki, go to Tools → Add-ons → Install from File…, pick the file and restart Anki. Then check a review and the Settings window.
+1. **Built-in wallpapers.** These are the three files in `src/frosted_glass_theme/user_files/default_wallpapers/`. To change them, keep the `Default - ` prefix, and use only pictures you're allowed to share, such as your own photos.
+2. **Version.** Set `human_version` in `src/frosted_glass_theme/manifest.json` and add a line to `CHANGELOG.md`.
+3. **Build.** Run `python build.py`, which writes `dist/frosted_glass_theme.ankiaddon`.
+4. **Test.** In Anki, go to Tools → Add-ons → Install from File…, pick the file and restart Anki. Then check a review and the Settings window.
 
 ## AnkiWeb
 

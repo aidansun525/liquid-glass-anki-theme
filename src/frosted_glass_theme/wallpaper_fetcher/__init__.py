@@ -3,17 +3,13 @@ Wallpaper downloads (part of Frosted Glass: Anki Aesthetic Overhaul)
 ------------------------------------------------
 Each day, fetches a few new wallpapers in one of two styles:
 
-  professional  photos from Unsplash on the topics you pick
+  professional  photos from Wallhaven's "General" category on the topics you pick
   anime         safe-rated anime art from Konachan and/or Wallhaven
 
 Runs in a background thread when a profile opens, so it never delays startup
 or blocks reviewing. Uses only the Python standard library.
 Settings live in user_files/wallpaper_fetcher.json.
 
-Unsplash's API terms ask apps to show their photos straight from Unsplash
-("hotlinking") and to credit the photographer. So an Unsplash pick is saved
-as a small .json note (photo address + credit) plus a thumbnail for the
-Settings gallery, not as a downloaded copy of the photo.
 """
 
 import json
@@ -35,7 +31,6 @@ MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 ADDON_DIR = os.path.dirname(MODULE_DIR)  # the add-on's folder
 USER_FILES = os.path.join(ADDON_DIR, "user_files")
 BACKGROUND_DIR = os.path.join(USER_FILES, "background")
-THUMB_DIR = os.path.join(BACKGROUND_DIR, ".thumbs")
 CONFIG_PATH = os.path.join(USER_FILES, "wallpaper_fetcher.json")
 STATE_PATH = os.path.join(USER_FILES, "wallpaper_fetcher_state.json")
 LOG_PATH = os.path.join(USER_FILES, "wallpaper_fetcher_log.txt")
@@ -43,30 +38,24 @@ LOG_PATH = os.path.join(USER_FILES, "wallpaper_fetcher_log.txt")
 # Every file this add-on downloads starts with this prefix. Nothing without
 # the prefix is ever touched, so your own pictures in the folder are safe.
 PREFIX = "auto_"
-UNSPLASH_PREFIX = PREFIX + "unsplash_"
+PRO_PREFIX = PREFIX + "pro_"
 ANIME_PREFIXES = (PREFIX + "konachan_", PREFIX + "wallhaven_")
 
 USER_AGENT = "FrostedGlassAnkiTheme/1.0 (+https://github.com/aidansun525/liquid-glass-anki-theme)"
 OK_EXTENSIONS = (".jpg", ".jpeg", ".png")
 
-# The add-on's own Unsplash app key. Anyone can paste their own key in
-# Settings instead, which then takes priority.
-UNSPLASH_APP_KEY = ""
-UNSPLASH_APP_NAME = "frosted_glass_anki"  # for Unsplash's referral links
-
-# Topic shown in Settings -> what is searched on Unsplash
+# Topic shown in Settings -> Wallhaven search (empty = anything)
 TOPICS = {
-    "Nature": "nature landscape",
-    "Travel": "travel",
-    "Minimal": "minimal",
-    "Animals": "animals wildlife",
-    "Other": None,  # any photo: Unsplash's random pick
+    "Nature": "nature",
+    "Travel": "city",
+    "Minimal": "minimalism",
+    "Animals": "animals",
+    "Other": "",
 }
 
 DEFAULTS = {
     "style": "professional",
     "topics": list(TOPICS),
-    "unsplash_access_key": "",
     "images_per_day": 3,
     "use_konachan": True,
     "use_wallhaven": True,
@@ -92,11 +81,7 @@ def is_style_download(name, which):
     """Is this downloaded file part of the given style's pictures?"""
     if which == "anime":
         return name.startswith(ANIME_PREFIXES)
-    return name.startswith(UNSPLASH_PREFIX)
-
-
-def unsplash_key(cfg):
-    return str(cfg.get("unsplash_access_key") or "").strip() or UNSPLASH_APP_KEY
+    return name.startswith(PRO_PREFIX)
 
 
 def chosen_topics(cfg):
@@ -173,7 +158,6 @@ def load_state():
     state.setdefault("seen", {})
     state["seen"].setdefault("konachan", [])
     state["seen"].setdefault("wallhaven", [])
-    state["seen"].setdefault("unsplash", [])
     return state
 
 
@@ -243,17 +227,23 @@ def konachan_candidates(cfg):
 
 
 def wallhaven_candidates(cfg):
-    """Wallhaven's 'sfw' purity level only."""
+    """Wallhaven's 'sfw' purity level only. Anime style searches the Anime
+    category; Professional searches the General category (no anime, no people)."""
+    pro = style(cfg) == "professional"
     params = {
         "purity": "100",
-        "categories": str(cfg.get("wallhaven_categories") or "010"),
+        "categories": "100" if pro else str(cfg.get("wallhaven_categories") or "010"),
         "sorting": "random",
         "atleast": f"{cfg['min_width']}x{cfg['min_height']}",
         "seed": "".join(random.choices(string.ascii_lowercase + string.digits, k=6)),
     }
     if str(cfg.get("wallhaven_ratios") or "").strip():
         params["ratios"] = cfg["wallhaven_ratios"].strip()
-    if str(cfg.get("wallhaven_query") or "").strip():
+    if pro:
+        topic = random.choice(chosen_topics(cfg))
+        if TOPICS[topic]:
+            params["q"] = TOPICS[topic]
+    elif str(cfg.get("wallhaven_query") or "").strip():
         params["q"] = cfg["wallhaven_query"].strip()
 
     url = "https://wallhaven.cc/api/v1/search?" + urllib.parse.urlencode(params)
@@ -266,93 +256,10 @@ def wallhaven_candidates(cfg):
         path = item.get("path") or ""
         if extension_of(path, "") not in OK_EXTENSIONS:
             continue
-        results.append({"source": "wallhaven", "id": str(item.get("id")), "url": path})
-    return results
-
-
-def _utm(url):
-    sep = "&" if "?" in url else "?"
-    return f"{url}{sep}utm_source={UNSPLASH_APP_NAME}&utm_medium=referral"
-
-
-def unsplash_candidates(cfg):
-    key = unsplash_key(cfg)
-    if not key:
-        log("Unsplash: no access key, skipping")
-        return []
-    topic = random.choice(chosen_topics(cfg))
-    params = {"count": 10, "orientation": "landscape", "content_filter": "high"}
-    if TOPICS[topic]:
-        params["query"] = TOPICS[topic]
-    url = "https://api.unsplash.com/photos/random?" + urllib.parse.urlencode(params)
-    photos = http_get(url, cfg["timeout_seconds"], as_json=True, headers=_unsplash_headers(key))
-    if isinstance(photos, dict):
-        photos = [photos]
-
-    results = []
-    for p in photos or []:
-        urls, user, links = p.get("urls") or {}, p.get("user") or {}, p.get("links") or {}
-        raw = urls.get("raw") or ""
-        if not raw or int(p.get("width") or 0) < cfg["min_width"]:
+        if pro and item.get("category") not in (None, "general"):
             continue
-        sep = "&" if "?" in raw else "?"
-        results.append({
-            "source": "unsplash",
-            "id": str(p.get("id")),
-            "url": f"{raw}{sep}w=2560&q=80&fm=jpg&fit=max",
-            "thumb": urls.get("small") or urls.get("thumb") or "",
-            "download_location": links.get("download_location") or "",
-            "credit": {
-                "name": user.get("name") or user.get("username") or "Unknown",
-                "profile": _utm((user.get("links") or {}).get("html") or "https://unsplash.com"),
-                "photo": _utm(links.get("html") or "https://unsplash.com"),
-                "unsplash": _utm("https://unsplash.com"),
-            },
-            "topic": topic,
-            "color": p.get("color") or "",
-        })
+        results.append({"source": "wallhaven", "id": str(item.get("id")), "url": path, "pro": pro})
     return results
-
-
-def _unsplash_headers(key):
-    return {"Authorization": f"Client-ID {key}", "Accept-Version": "v1"}
-
-
-def save_unsplash(cfg, candidate, folder):
-    """Save an Unsplash pick as a .json note plus a small thumbnail."""
-    safe_id = re.sub(r"[^A-Za-z0-9_-]", "", candidate["id"])
-    name = f"{UNSPLASH_PREFIX}{safe_id}.json"
-    if candidate.get("thumb"):
-        try:
-            os.makedirs(THUMB_DIR, exist_ok=True)
-            data = http_get(candidate["thumb"], cfg["timeout_seconds"])
-            with open(os.path.join(THUMB_DIR, name[:-5] + ".jpg"), "wb") as fh:
-                fh.write(data)
-        except Exception as exc:
-            log(f"thumbnail failed for {candidate['id']}: {exc}")
-    info = {k: candidate[k] for k in ("id", "url", "credit", "topic", "color")}
-    temp = os.path.join(folder, name + ".part")
-    with open(temp, "w", encoding="utf-8") as fh:
-        json.dump(info, fh, indent=1)
-    os.replace(temp, os.path.join(folder, name))
-    # Unsplash asks apps to report when a photo is used.
-    if candidate.get("download_location"):
-        try:
-            http_get(candidate["download_location"], cfg["timeout_seconds"], as_json=True,
-                     headers=_unsplash_headers(unsplash_key(cfg)))
-        except Exception as exc:
-            log(f"Unsplash download report failed: {exc}")
-    log(f"saved {name} (Unsplash, {candidate.get('topic')})")
-    return name
-
-
-def read_unsplash(path):
-    try:
-        with open(path, encoding="utf-8") as fh:
-            info = json.load(fh)
-        return info if isinstance(info, dict) and info.get("url") else None
-    except Exception:
-        return None
 
 
 # ----------------------------------------------------------------- fetching
@@ -366,7 +273,7 @@ def download_one(cfg, folder, state):
         if cfg.get("use_wallhaven"):
             providers.append(wallhaven_candidates)
     else:
-        providers = [unsplash_candidates]
+        providers = [wallhaven_candidates]
     if not providers:
         log("no sources enabled in config")
         return None
@@ -388,18 +295,8 @@ def download_one(cfg, folder, state):
         for candidate in fresh[:5]:
             seen = state["seen"].setdefault(candidate["source"], [])
             safe_id = re.sub(r"[^A-Za-z0-9_-]", "", candidate["id"])
-            if candidate["source"] == "unsplash":
-                if os.path.exists(os.path.join(folder, f"{UNSPLASH_PREFIX}{safe_id}.json")):
-                    seen.append(candidate["id"])
-                    continue
-                try:
-                    name = save_unsplash(cfg, candidate, folder)
-                except Exception as exc:
-                    log(f"could not save Unsplash photo {candidate['id']}: {exc}")
-                    continue
-                seen.append(candidate["id"])
-                return name
-            name = f"{PREFIX}{candidate['source']}_{safe_id}{extension_of(candidate['url'])}"
+            prefix = PRO_PREFIX if candidate.get("pro") else PREFIX
+            name = f"{prefix}{candidate['source']}_{safe_id}{extension_of(candidate['url'])}"
             destination = os.path.join(folder, name)
             if os.path.exists(destination):
                 seen.append(candidate["id"])
@@ -425,10 +322,6 @@ def download_one(cfg, folder, state):
 
 def _remove(path):
     os.remove(path)
-    if path.endswith(".json"):  # an Unsplash note: its thumbnail goes too
-        thumb = os.path.join(THUMB_DIR, os.path.basename(path)[:-5] + ".jpg")
-        if os.path.exists(thumb):
-            os.remove(thumb)
 
 
 def prune(folder, cfg):

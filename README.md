@@ -8,7 +8,7 @@ A calm, good-looking Anki. Your cards sit on a pane of frosted glass over a wall
 
 - **Wallpaper behind every screen**: the deck list, deck overview, review screen and the top and bottom bars. The picture lines up seamlessly across all three areas, in light and dark mode.
 - **New wallpapers every day**, in the style you choose:
-  - **Professional photos** from [Unsplash](https://unsplash.com), on any of five topics: Nature, Travel, Minimal, Animals, or Other (anything).
+  - **Professional photos** from [Wallhaven](https://wallhaven.cc)'s General category (no anime, no people), on any of five topics: Nature, Travel, Minimal, Animals, or Other (anything).
   - **Anime art** from Konachan and Wallhaven, safe-rated pictures only.
   - Or turn downloads off and keep one picture forever. Three built-in wallpapers are included, and you can add your own.
 - **Frosted-glass card** with adjustable opacity, blur, width, height and corner roundness. Cards keep a steady size, and longer cards grow smoothly.
@@ -52,10 +52,6 @@ Open **Tools → Frosted Glass → Settings…**.
 
 Anime art comes from community sites, and only pictures their uploaders rated "safe" are downloaded. That rating depends on how each uploader labeled their picture, so some may still not suit school, work or other professional settings. The Settings window shows this warning when you choose the anime style. If that matters to you, stick with Professional photos.
 
-### Unsplash photos
-
-Photos are shown directly from Unsplash, and the photographer is credited in a small corner of the deck list while their photo is on screen, as [Unsplash's guidelines](https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines) ask. If downloads ever stop because the add-on's shared Unsplash key is busy, create a free key at [unsplash.com/developers](https://unsplash.com/developers) and paste its Access Key into Settings → Daily downloads.
-
 ## Coming from other add-ons
 
 On first launch, it imports your pictures, gear icons and settings from **Custom Background Image and Gear Icon** (AnKing). It then turns that add-on off so the two don't both draw backgrounds. The old add-on's folder stays in place, so you can remove it from Tools → Add-ons.
@@ -82,6 +78,5 @@ This writes `dist/frosted_glass_theme.ankiaddon` from `src/frosted_glass_theme`.
 - Copyright © 2026 AidanS. Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 - The background code is based on [Custom Background Image and Gear Icon](https://github.com/AnKing-VIP/Custom-background-image-and-gear-icon) by ijgnd and The AnKing (AGPL-3.0).
 - Gear icons are from [Noto Color Emoji](https://github.com/googlefonts/noto-emoji) (Apache 2.0).
-- Photos are from [Unsplash](https://unsplash.com/?utm_source=frosted_glass_anki&utm_medium=referral), credited to each photographer and used under the [Unsplash License](https://unsplash.com/license).
-- Anime art is from [Konachan](https://konachan.net) and [Wallhaven](https://wallhaven.cc). It belongs to its artists and is downloaded for personal use as a wallpaper.
-- The built-in wallpapers and piano notes were made for this add-on.
+- Downloaded wallpapers come from [Wallhaven](https://wallhaven.cc) and [Konachan](https://konachan.net). They belong to their creators and are downloaded to your own computer for personal use as wallpapers.
+- The three built-in wallpapers are film photographs by AidanS, included with permission for use with this add-on. The piano notes were made for this add-on.
