@@ -2,7 +2,7 @@
 
 ## Before the first release
 
-1. **Built-in wallpapers.** These are the three files in `src/frosted_glass_theme/user_files/default_wallpapers/`. To change them, keep the `Default - ` prefix, and use only pictures you're allowed to share, such as your own photos.
+1. **Built-in wallpapers.** These are the four files in `src/frosted_glass_theme/user_files/default_wallpapers/`. To change them, keep the `Default - ` prefix, and use only pictures you're allowed to share, such as your own photos.
 2. **Version.** Set `human_version` in `src/frosted_glass_theme/manifest.json` and add a line to `CHANGELOG.md`.
 3. **Build.** Run `python build.py`, which writes `dist/frosted_glass_theme.ankiaddon`.
 4. **Test.** In Anki, go to Tools → Add-ons → Install from File…, pick the file and restart Anki. Then check a review and the Settings window.

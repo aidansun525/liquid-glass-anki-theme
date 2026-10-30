@@ -10,7 +10,7 @@ A calm, good-looking Anki. Your cards sit on a pane of frosted glass over a wall
 - **New wallpapers every day**, in the style you choose:
   - **Professional photos** from [Wallhaven](https://wallhaven.cc)'s General category (no anime, no people), on the topics Nature, Architecture and Landscape, plus any tags you type in yourself.
   - **Anime art** from Konachan and Wallhaven, safe-rated pictures only.
-  - Or turn downloads off and keep one picture forever. Three built-in wallpapers are included, and you can add your own.
+  - Or turn downloads off and keep one picture forever. Four built-in wallpapers are included, and you can add your own.
 - **Frosted-glass card** with adjustable opacity, blur, width, height and corner roundness. Cards keep a steady size, and longer cards grow smoothly.
 - **Answer feedback**: a soft glow in the answer's color, plus a short piano note (Again, Hard, Good and Easy each have their own). You can adjust the volume or turn either off, and use your own sounds if you like.
 - **Card text size** slider. It changes only the size; bold, colors and links stay as they are.
