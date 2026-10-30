@@ -27,4 +27,4 @@ Background Image and Gear Icon by ijgnd and The AnKing
 which is AGPL v3 or later.
 The gear icons in user_files/default_gear are Noto Color Emoji (Apache 2.0).
 The built-in wallpapers in user_files/default_wallpapers are film photographs
-by AidanS.
+by Aidan S. (photo credit: Aidan S.)

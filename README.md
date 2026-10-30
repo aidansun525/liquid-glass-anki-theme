@@ -79,4 +79,12 @@ This writes `dist/frosted_glass_theme.ankiaddon` from `src/frosted_glass_theme`.
 - The background code is based on [Custom Background Image and Gear Icon](https://github.com/AnKing-VIP/Custom-background-image-and-gear-icon) by ijgnd and The AnKing (AGPL-3.0).
 - Gear icons are from [Noto Color Emoji](https://github.com/googlefonts/noto-emoji) (Apache 2.0).
 - Downloaded wallpapers come from [Wallhaven](https://wallhaven.cc) and [Konachan](https://konachan.net). They belong to their creators and are downloaded to your own computer for personal use as wallpapers.
-- The three built-in wallpapers are film photographs by AidanS, included with permission for use with this add-on. The piano notes were made for this add-on.
+- The piano notes were made for this add-on.
+
+## Also by me: Card Read Aloud 🎧
+
+Want your cards read to you? **[Card Read Aloud](https://github.com/aidansun525/Anki-Card-read-aloud)** reads your reviews aloud in a natural, gentle voice (Kokoro). It runs offline on your own computer and is made for med students: it says "I V", not "Roman four", and knows 1,400+ medical pronunciations.
+
+---
+
+<sub>📷 Photo credit for the built-in wallpapers: **Aidan S.**</sub>
