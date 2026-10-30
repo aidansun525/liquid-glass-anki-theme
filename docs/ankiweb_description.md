@@ -1,6 +1,6 @@
 **A calm, good-looking Anki.** Your cards sit on frosted glass over a wallpaper that runs behind every screen, and each answer gets a soft glow and a quiet piano note.
 
-![Review screen](https://raw.githubusercontent.com/aidansun525/liquid-glass-anki-theme/main/docs/screenshots/review_answer.jpg)
+![Soft glow after answering Good](https://raw.githubusercontent.com/aidansun525/liquid-glass-anki-theme/main/docs/screenshots/glow_good.jpg)
 
 ## Features
 
@@ -12,11 +12,9 @@
 - **New wallpaper** button on the deck list, and Ctrl+Shift+W anywhere.
 - One **Settings** window (Tools → Frosted Glass → Settings). Changes show up live.
 
-![Deck list](https://raw.githubusercontent.com/aidansun525/liquid-glass-anki-theme/main/docs/screenshots/decks_light.jpg)
+![Deck list, dark mode, review and the glow on Again](https://raw.githubusercontent.com/aidansun525/liquid-glass-anki-theme/main/docs/screenshots/ankiweb_grid.jpg)
 
-![Dark mode](https://raw.githubusercontent.com/aidansun525/liquid-glass-anki-theme/main/docs/screenshots/review_dark.jpg)
-
-![Settings](https://raw.githubusercontent.com/aidansun525/liquid-glass-anki-theme/main/docs/screenshots/settings_downloads.jpg)
+![Settings: wallpaper, daily downloads, glass and sound](https://raw.githubusercontent.com/aidansun525/liquid-glass-anki-theme/main/docs/screenshots/ankiweb_settings.jpg)
 
 ## Good to know
 
