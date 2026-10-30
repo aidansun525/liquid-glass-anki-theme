@@ -47,15 +47,14 @@ OK_EXTENSIONS = (".jpg", ".jpeg", ".png")
 # Topic shown in Settings -> Wallhaven search (empty = anything)
 TOPICS = {
     "Nature": "nature",
-    "Travel": "city",
-    "Minimal": "minimalism",
-    "Animals": "animals",
-    "Other": "",
+    "Architecture": "architecture",
+    "Landscape": "landscape",
 }
 
 DEFAULTS = {
     "style": "professional",
     "topics": list(TOPICS),
+    "custom_tags": "",
     "images_per_day": 3,
     "use_konachan": True,
     "use_wallhaven": True,
@@ -85,8 +84,17 @@ def is_style_download(name, which):
 
 
 def chosen_topics(cfg):
-    topics = [t for t in (cfg.get("topics") or []) if t in TOPICS]
-    return topics or list(TOPICS)
+    return [t for t in (cfg.get("topics") or []) if t in TOPICS]
+
+
+def searches(cfg):
+    """What Professional mode searches for: the ticked topics plus your own
+    tags, if you typed any. Each download picks one at random."""
+    pool = [TOPICS[t] for t in chosen_topics(cfg)]
+    custom = str(cfg.get("custom_tags") or "").strip()
+    if custom:
+        pool.append(custom)
+    return pool or list(TOPICS.values())
 
 
 # called on the main thread after new pictures were saved
@@ -240,9 +248,7 @@ def wallhaven_candidates(cfg):
     if str(cfg.get("wallhaven_ratios") or "").strip():
         params["ratios"] = cfg["wallhaven_ratios"].strip()
     if pro:
-        topic = random.choice(chosen_topics(cfg))
-        if TOPICS[topic]:
-            params["q"] = TOPICS[topic]
+        params["q"] = random.choice(searches(cfg))
     elif str(cfg.get("wallhaven_query") or "").strip():
         params["q"] = cfg["wallhaven_query"].strip()
 

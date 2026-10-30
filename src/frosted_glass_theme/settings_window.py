@@ -242,6 +242,13 @@ class DownloadsTab(QWidget):
         intro = QLabel("Each time you open Anki, a few new wallpapers are added in the background.")
         intro.setWordWrap(True)
         layout.addWidget(intro)
+        warning = QLabel("All downloaded pictures come from the internet and MAY BE INAPPROPRIATE FOR "
+                         "PROFESSIONAL SETTINGS. For the safest option, TURN OFF RANDOM WALLPAPERS: set "
+                         "New pictures per day to Off and pick one of the built-in pictures on the Wallpaper tab.")
+        warning.setWordWrap(True)
+        warning.setStyleSheet("color: #d32f2f; font-weight: bold;")
+        self.warning = warning
+        layout.addWidget(warning)
 
         form = QFormLayout()
         self.per_day = QSpinBox()
@@ -277,8 +284,12 @@ class DownloadsTab(QWidget):
             self.topics[topic] = box
         topics.addStretch(1)
         pro.addRow("Topics", topics)
-        pro.addRow(_hint("Safe-rated photos from Wallhaven's General category: scenery, cities, "
-                         "animals and the like, with no anime and no people."))
+        self.custom = QLineEdit(str(self.cfg.get("custom_tags") or ""))
+        self.custom.setPlaceholderText("optional, e.g. ocean, autumn, snow")
+        self.custom.setToolTip("Your own search, used alongside the ticked topics")
+        self.custom.textChanged.connect(lambda t: self._set("custom_tags", t.strip(), delay=800))
+        pro.addRow("Your own tags", self.custom)
+        pro.addRow(_hint("Safe-rated photos from Wallhaven's General category (no anime, no people)."))
         layout.addWidget(self.pro_box)
 
         # anime: Konachan / Wallhaven, safe-rated only
@@ -303,13 +314,6 @@ class DownloadsTab(QWidget):
         self.query.setPlaceholderText("anything, or e.g. landscape")
         self.query.textChanged.connect(lambda t: self._set("wallhaven_query", t.strip(), delay=800))
         an.addRow("Wallhaven search", self.query)
-        warning = QLabel("Heads up: these sites rely on how each uploader rated and tagged their picture. "
-                         "Even though only safe-rated art is downloaded, some pictures may still not be "
-                         "appropriate for school, work or other professional settings.")
-        warning.setWordWrap(True)
-        warning.setStyleSheet("color: #d32f2f;")
-        self.warning = warning
-        an.addRow(warning)
         layout.addWidget(self.anime_box)
 
         form2 = QFormLayout()
@@ -361,8 +365,8 @@ class DownloadsTab(QWidget):
             wf.fetch_now()
 
     def _topic(self, topic, on):
-        if not on and not any(b.isChecked() for b in self.topics.values()):
-            self.topics[topic].setChecked(True)  # keep at least one topic
+        if not on and not any(b.isChecked() for b in self.topics.values()) and not self.custom.text().strip():
+            self.topics[topic].setChecked(True)  # keep at least one topic (or your own tags)
             return
         self._set("topics", [t for t, b in self.topics.items() if b.isChecked()])
 
@@ -392,6 +396,7 @@ class DownloadsTab(QWidget):
         self.notify.setChecked(d["show_notification"])
         for box in self.topics.values():
             box.setChecked(True)
+        self.custom.setText("")
         self.professional.setChecked(True)
 
     def flush(self):

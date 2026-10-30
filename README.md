@@ -8,7 +8,7 @@ A calm, good-looking Anki. Your cards sit on a pane of frosted glass over a wall
 
 - **Wallpaper behind every screen**: the deck list, deck overview, review screen and the top and bottom bars. The picture lines up seamlessly across all three areas, in light and dark mode.
 - **New wallpapers every day**, in the style you choose:
-  - **Professional photos** from [Wallhaven](https://wallhaven.cc)'s General category (no anime, no people), on any of five topics: Nature, Travel, Minimal, Animals, or Other (anything).
+  - **Professional photos** from [Wallhaven](https://wallhaven.cc)'s General category (no anime, no people), on the topics Nature, Architecture and Landscape, plus any tags you type in yourself.
   - **Anime art** from Konachan and Wallhaven, safe-rated pictures only.
   - Or turn downloads off and keep one picture forever. Three built-in wallpapers are included, and you can add your own.
 - **Frosted-glass card** with adjustable opacity, blur, width, height and corner roundness. Cards keep a steady size, and longer cards grow smoothly.
@@ -48,9 +48,9 @@ Open **Tools → Frosted Glass → Settings…**.
 
 **Want a wallpaper that never changes?** Click it on the Wallpaper tab, then set *New pictures per day* to *Off*.
 
-### About the anime style
+### ⚠️ About downloaded pictures
 
-Anime art comes from community sites, and only pictures their uploaders rated "safe" are downloaded. That rating depends on how each uploader labeled their picture, so some may still not suit school, work or other professional settings. The Settings window shows this warning when you choose the anime style. If that matters to you, stick with Professional photos.
+**All downloaded pictures come from the internet and MAY BE INAPPROPRIATE FOR PROFESSIONAL SETTINGS.** Only pictures rated "safe" are downloaded, but that rating depends on how each uploader labeled their picture. **For the safest option, TURN OFF RANDOM WALLPAPERS:** set *New pictures per day* to *Off* and pick one of the built-in pictures. The Settings window always shows this warning.
 
 ## Coming from other add-ons
 
