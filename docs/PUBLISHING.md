@@ -14,7 +14,7 @@
    - **Title:** `Frosted Glass: Anki Aesthetic Overhaul`
    - **Tags:** `theme background wallpaper glass aesthetic reviewer sound`
    - **Support page:** `https://github.com/aidansun525/liquid-glass-anki-theme/issues`
-   - **Description:** paste the contents of `docs/ankiweb_description.html`. The images load from GitHub, so push the repo first.
+   - **Description:** paste the contents of `docs/ankiweb_description.md` (or the `.html` version if the field doesn't render Markdown). The images load from GitHub, so push the repo first.
    - **File:** `dist/frosted_glass_theme.ankiaddon`.
 3. After uploading, AnkiWeb gives the add-on a number (its install code). Put the AnkiWeb link and code into the Install section of `README.md`.
 4. For later updates, use the same page's *Update* option with a new build. Users get the update automatically.

@@ -83,7 +83,7 @@ This writes `dist/frosted_glass_theme.ankiaddon` from `src/frosted_glass_theme`.
 
 ## Also by me: Card Read Aloud 🎧
 
-Want your cards read to you? **[Card Read Aloud](https://github.com/aidansun525/Anki-Card-read-aloud)** reads your reviews aloud in a natural, gentle voice (Kokoro). It runs offline on your own computer and is made for med students: it says "I V", not "Roman four", and knows 1,400+ medical pronunciations.
+Want your cards read to you? **[Card Read Aloud](https://ankiweb.net/shared/info/1243350003)** reads your reviews aloud in a natural, gentle voice (Kokoro). It runs offline on your own computer and is made for med students: it says "I V", not "Roman four", and knows 1,400+ medical pronunciations.
 
 ---
 
