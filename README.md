@@ -2,7 +2,7 @@
 
 A calm, good-looking Anki. Your cards sit on a pane of frosted glass over a wallpaper that runs behind every screen, and each answer gets a soft glow and a quiet piano note.
 
-![Review screen with a frosted-glass card](docs/screenshots/review_answer.jpg)
+![Frosted-glass card glowing after a Good answer](docs/screenshots/glow_good.jpg)
 
 ## Features
 
@@ -18,9 +18,9 @@ A calm, good-looking Anki. Your cards sit on a pane of frosted glass over a wall
 - **Custom deck gear icons** (optional).
 - One **Settings** window. Every change shows up live without reloading.
 
-| Deck list | Dark mode |
+| Light mode | Dark mode |
 |---|---|
-| ![Deck list](docs/screenshots/decks_light.jpg) | ![Dark mode review](docs/screenshots/review_dark.jpg) |
+| ![Light mode review](docs/screenshots/review_answer.jpg) | ![Dark mode review](docs/screenshots/review_dark.jpg) |
 
 | Glow on Good | Glow on Again |
 |---|---|

@@ -12,7 +12,7 @@
 - **New wallpaper** button on the deck list, and Ctrl+Shift+W anywhere.
 - One **Settings** window (Tools → Frosted Glass → Settings). Changes show up live.
 
-![Deck list in light and dark mode, a review over the forest cairns, and the glow on Again](https://raw.githubusercontent.com/aidansun525/liquid-glass-anki-theme/main/docs/screenshots/ankiweb_grid.jpg)
+![Light mode, dark mode, and the glow on Good and Again](https://raw.githubusercontent.com/aidansun525/liquid-glass-anki-theme/main/docs/screenshots/ankiweb_grid.jpg)
 
 ![Settings: wallpaper, daily downloads, glass and sound](https://raw.githubusercontent.com/aidansun525/liquid-glass-anki-theme/main/docs/screenshots/ankiweb_settings.jpg)
 
