@@ -1,0 +1,13 @@
+{
+    "package": "frosted_glass_theme",
+    "name": "Frosted Glass: Anki Aesthetic Overhaul",
+    "human_version": "1.0",
+    "min_point_version": 50,
+    "homepage": "https://github.com/aidansun525/liquid-glass-anki-theme",
+    "conflicts": [
+        "1210908941",
+        "anki_wallpaper_fetcher",
+        "frosted_glass_feedback",
+        "anime_study_theme"
+    ]
+}

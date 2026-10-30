@@ -1,0 +1,44 @@
+/* Frosted Glass + Feedback: the glass card panel.
+   This whole stylesheet is switched on/off by the add-on (Tools menu), so it
+   doesn't depend on any page classes or attributes that Anki or other
+   add-ons might change. Key properties use !important so note-type styling
+   can't quietly cancel the panel. box-shadow is left without !important so
+   the answer glow can animate it. */
+
+body #qa {
+  box-sizing: border-box !important;
+  max-width: min(var(--fg-width, 860px), 100%) !important;
+  /* a steady size: short cards all share this height, long ones grow */
+  min-height: min(var(--fg-height, 0px), 82vh) !important;
+  margin: 4vh auto !important;
+  padding: 30px 38px !important;
+  border-radius: var(--fg-radius, 18px) !important;
+  background: var(--fg-tint-light, rgba(255, 255, 255, 0.4)) !important;
+  -webkit-backdrop-filter: blur(var(--fg-blur, 22px)) saturate(135%) !important;
+  backdrop-filter: blur(var(--fg-blur, 22px)) saturate(135%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
+}
+
+body.nightMode #qa,
+body.night_mode #qa {
+  background: var(--fg-tint-dark, rgba(16, 17, 22, 0.42)) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.32);
+}
+
+/* Before the first card is drawn, show nothing. */
+body #qa:empty {
+  min-height: 0 !important;
+  background: none !important;
+  border-color: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none;
+}
+
+/* Webviews without blur support get a more solid panel so text stays readable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body #qa { background: rgba(255, 255, 255, 0.85) !important; }
+  body.nightMode #qa, body.night_mode #qa { background: rgba(16, 17, 22, 0.85) !important; }
+}

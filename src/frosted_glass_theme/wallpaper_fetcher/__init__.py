@@ -1,0 +1,546 @@
+"""
+Wallpaper downloads (part of Frosted Glass: Anki Aesthetic Overhaul)
+------------------------------------------------
+Each day, fetches a few new wallpapers in one of two styles:
+
+  professional  photos from Unsplash on the topics you pick
+  anime         safe-rated anime art from Konachan and/or Wallhaven
+
+Runs in a background thread when a profile opens, so it never delays startup
+or blocks reviewing. Uses only the Python standard library.
+Settings live in user_files/wallpaper_fetcher.json.
+
+Unsplash's API terms ask apps to show their photos straight from Unsplash
+("hotlinking") and to credit the photographer. So an Unsplash pick is saved
+as a small .json note (photo address + credit) plus a thumbnail for the
+Settings gallery, not as a downloaded copy of the photo.
+"""
+
+import json
+import os
+import random
+import re
+import string
+import threading
+import time
+import urllib.parse
+import urllib.request
+from datetime import date
+
+from aqt import gui_hooks, mw
+from aqt.qt import QAction
+from aqt.utils import openFolder, tooltip
+
+MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
+ADDON_DIR = os.path.dirname(MODULE_DIR)  # the add-on's folder
+USER_FILES = os.path.join(ADDON_DIR, "user_files")
+BACKGROUND_DIR = os.path.join(USER_FILES, "background")
+THUMB_DIR = os.path.join(BACKGROUND_DIR, ".thumbs")
+CONFIG_PATH = os.path.join(USER_FILES, "wallpaper_fetcher.json")
+STATE_PATH = os.path.join(USER_FILES, "wallpaper_fetcher_state.json")
+LOG_PATH = os.path.join(USER_FILES, "wallpaper_fetcher_log.txt")
+
+# Every file this add-on downloads starts with this prefix. Nothing without
+# the prefix is ever touched, so your own pictures in the folder are safe.
+PREFIX = "auto_"
+UNSPLASH_PREFIX = PREFIX + "unsplash_"
+ANIME_PREFIXES = (PREFIX + "konachan_", PREFIX + "wallhaven_")
+
+USER_AGENT = "FrostedGlassAnkiTheme/1.0 (+https://github.com/aidansun525/liquid-glass-anki-theme)"
+OK_EXTENSIONS = (".jpg", ".jpeg", ".png")
+
+# The add-on's own Unsplash app key. Anyone can paste their own key in
+# Settings instead, which then takes priority.
+UNSPLASH_APP_KEY = ""
+UNSPLASH_APP_NAME = "frosted_glass_anki"  # for Unsplash's referral links
+
+# Topic shown in Settings -> what is searched on Unsplash
+TOPICS = {
+    "Nature": "nature landscape",
+    "Travel": "travel",
+    "Minimal": "minimal",
+    "Animals": "animals wildlife",
+    "Other": None,  # any photo: Unsplash's random pick
+}
+
+DEFAULTS = {
+    "style": "professional",
+    "topics": list(TOPICS),
+    "unsplash_access_key": "",
+    "images_per_day": 3,
+    "use_konachan": True,
+    "use_wallhaven": True,
+    "min_width": 1920,
+    "min_height": 1080,
+    "konachan_tags": "",
+    "wallhaven_query": "",
+    "wallhaven_categories": "010",
+    "wallhaven_ratios": "16x9",
+    "delete_after_days": 3,
+    "always_keep_newest": 5,
+    "max_images_kept": 0,
+    "timeout_seconds": 25,
+    "show_notification": False,
+}
+
+
+def style(cfg=None):
+    return "anime" if (cfg or get_config()).get("style") == "anime" else "professional"
+
+
+def is_style_download(name, which):
+    """Is this downloaded file part of the given style's pictures?"""
+    if which == "anime":
+        return name.startswith(ANIME_PREFIXES)
+    return name.startswith(UNSPLASH_PREFIX)
+
+
+def unsplash_key(cfg):
+    return str(cfg.get("unsplash_access_key") or "").strip() or UNSPLASH_APP_KEY
+
+
+def chosen_topics(cfg):
+    topics = [t for t in (cfg.get("topics") or []) if t in TOPICS]
+    return topics or list(TOPICS)
+
+
+# called on the main thread after new pictures were saved
+on_fetched = []
+
+
+# ---------------------------------------------------------------- utilities
+
+def log(message):
+    try:
+        os.makedirs(USER_FILES, exist_ok=True)
+        stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open(LOG_PATH, "a", encoding="utf-8") as fh:
+            fh.write(f"{stamp}  {message}\n")
+    except Exception:
+        pass
+
+
+def write_config(cfg):
+    os.makedirs(USER_FILES, exist_ok=True)
+    tmp = CONFIG_PATH + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump({k: cfg[k] for k in DEFAULTS if k in cfg}, fh, indent=4)
+    os.replace(tmp, CONFIG_PATH)
+
+
+def get_config():
+    cfg = dict(DEFAULTS)
+    try:
+        with open(CONFIG_PATH, encoding="utf-8") as fh:
+            saved = json.load(fh)
+        if isinstance(saved, dict):
+            cfg.update({k: v for k, v in saved.items() if v is not None and k in DEFAULTS})
+    except FileNotFoundError:
+        try:
+            write_config(cfg)  # create it so there's a file to edit
+        except Exception:
+            pass
+    except Exception as exc:
+        log(f"could not read config, using defaults: {exc}")
+    return cfg
+
+
+def import_settings(old_cfg, old_state_path):
+    """Bring over settings and download history from the standalone add-on.
+    The old 'folder' setting is dropped: pictures now go into this add-on."""
+    if not os.path.exists(CONFIG_PATH) and isinstance(old_cfg, dict):
+        merged = dict(DEFAULTS)
+        merged.update({k: v for k, v in old_cfg.items() if k in DEFAULTS and v is not None})
+        write_config(merged)
+    if old_state_path and os.path.isfile(old_state_path) and not os.path.exists(STATE_PATH):
+        with open(old_state_path, encoding="utf-8") as src, open(STATE_PATH, "w", encoding="utf-8") as dst:
+            dst.write(src.read())
+
+
+def target_folder():
+    os.makedirs(BACKGROUND_DIR, exist_ok=True)
+    return BACKGROUND_DIR
+
+
+def load_state():
+    try:
+        with open(STATE_PATH, "r", encoding="utf-8") as fh:
+            state = json.load(fh)
+    except Exception:
+        state = {}
+    state.setdefault("last_date", "")
+    state.setdefault("count_today", 0)
+    state.setdefault("seen", {})
+    state["seen"].setdefault("konachan", [])
+    state["seen"].setdefault("wallhaven", [])
+    state["seen"].setdefault("unsplash", [])
+    return state
+
+
+def save_state(state):
+    try:
+        os.makedirs(USER_FILES, exist_ok=True)
+        # Keep the "already downloaded" lists from growing forever.
+        for key in state.get("seen", {}):
+            state["seen"][key] = state["seen"][key][-4000:]
+        with open(STATE_PATH, "w", encoding="utf-8") as fh:
+            json.dump(state, fh)
+    except Exception as exc:
+        log(f"could not save state: {exc}")
+
+
+def http_get(url, timeout, as_json=False, headers=None):
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json" if as_json else "image/*",
+            **(headers or {}),
+        },
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        payload = response.read()
+    if as_json:
+        return json.loads(payload.decode("utf-8", "replace"))
+    return payload
+
+
+def absolute(url):
+    if url.startswith("//"):
+        return "https:" + url
+    return url
+
+
+def extension_of(url, fallback=".jpg"):
+    ext = os.path.splitext(urllib.parse.urlparse(url).path)[1].lower()
+    return ext if ext in OK_EXTENSIONS else fallback
+
+
+# ----------------------------------------------------------------- sources
+
+def konachan_candidates(cfg):
+    """konachan.net is Konachan's safe-only mirror; ratings are checked again below."""
+    tags = "order:random rating:safe"
+    extra = str(cfg.get("konachan_tags") or "").strip()
+    if extra:
+        tags += " " + extra
+    url = "https://konachan.net/post.json?" + urllib.parse.urlencode({"tags": tags, "limit": 60})
+    posts = http_get(url, cfg["timeout_seconds"], as_json=True)
+
+    results = []
+    for post in posts:
+        if post.get("rating") != "s":
+            continue
+        file_url = absolute(post.get("file_url") or "")
+        if not file_url or extension_of(file_url, "") not in OK_EXTENSIONS:
+            continue
+        if int(post.get("width") or 0) < cfg["min_width"]:
+            continue
+        if int(post.get("height") or 0) < cfg["min_height"]:
+            continue
+        results.append({"source": "konachan", "id": str(post.get("id")), "url": file_url})
+    return results
+
+
+def wallhaven_candidates(cfg):
+    """Wallhaven's 'sfw' purity level only."""
+    params = {
+        "purity": "100",
+        "categories": str(cfg.get("wallhaven_categories") or "010"),
+        "sorting": "random",
+        "atleast": f"{cfg['min_width']}x{cfg['min_height']}",
+        "seed": "".join(random.choices(string.ascii_lowercase + string.digits, k=6)),
+    }
+    if str(cfg.get("wallhaven_ratios") or "").strip():
+        params["ratios"] = cfg["wallhaven_ratios"].strip()
+    if str(cfg.get("wallhaven_query") or "").strip():
+        params["q"] = cfg["wallhaven_query"].strip()
+
+    url = "https://wallhaven.cc/api/v1/search?" + urllib.parse.urlencode(params)
+    payload = http_get(url, cfg["timeout_seconds"], as_json=True)
+
+    results = []
+    for item in payload.get("data", []):
+        if item.get("purity") != "sfw":
+            continue
+        path = item.get("path") or ""
+        if extension_of(path, "") not in OK_EXTENSIONS:
+            continue
+        results.append({"source": "wallhaven", "id": str(item.get("id")), "url": path})
+    return results
+
+
+def _utm(url):
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}utm_source={UNSPLASH_APP_NAME}&utm_medium=referral"
+
+
+def unsplash_candidates(cfg):
+    key = unsplash_key(cfg)
+    if not key:
+        log("Unsplash: no access key, skipping")
+        return []
+    topic = random.choice(chosen_topics(cfg))
+    params = {"count": 10, "orientation": "landscape", "content_filter": "high"}
+    if TOPICS[topic]:
+        params["query"] = TOPICS[topic]
+    url = "https://api.unsplash.com/photos/random?" + urllib.parse.urlencode(params)
+    photos = http_get(url, cfg["timeout_seconds"], as_json=True, headers=_unsplash_headers(key))
+    if isinstance(photos, dict):
+        photos = [photos]
+
+    results = []
+    for p in photos or []:
+        urls, user, links = p.get("urls") or {}, p.get("user") or {}, p.get("links") or {}
+        raw = urls.get("raw") or ""
+        if not raw or int(p.get("width") or 0) < cfg["min_width"]:
+            continue
+        sep = "&" if "?" in raw else "?"
+        results.append({
+            "source": "unsplash",
+            "id": str(p.get("id")),
+            "url": f"{raw}{sep}w=2560&q=80&fm=jpg&fit=max",
+            "thumb": urls.get("small") or urls.get("thumb") or "",
+            "download_location": links.get("download_location") or "",
+            "credit": {
+                "name": user.get("name") or user.get("username") or "Unknown",
+                "profile": _utm((user.get("links") or {}).get("html") or "https://unsplash.com"),
+                "photo": _utm(links.get("html") or "https://unsplash.com"),
+                "unsplash": _utm("https://unsplash.com"),
+            },
+            "topic": topic,
+            "color": p.get("color") or "",
+        })
+    return results
+
+
+def _unsplash_headers(key):
+    return {"Authorization": f"Client-ID {key}", "Accept-Version": "v1"}
+
+
+def save_unsplash(cfg, candidate, folder):
+    """Save an Unsplash pick as a .json note plus a small thumbnail."""
+    safe_id = re.sub(r"[^A-Za-z0-9_-]", "", candidate["id"])
+    name = f"{UNSPLASH_PREFIX}{safe_id}.json"
+    if candidate.get("thumb"):
+        try:
+            os.makedirs(THUMB_DIR, exist_ok=True)
+            data = http_get(candidate["thumb"], cfg["timeout_seconds"])
+            with open(os.path.join(THUMB_DIR, name[:-5] + ".jpg"), "wb") as fh:
+                fh.write(data)
+        except Exception as exc:
+            log(f"thumbnail failed for {candidate['id']}: {exc}")
+    info = {k: candidate[k] for k in ("id", "url", "credit", "topic", "color")}
+    temp = os.path.join(folder, name + ".part")
+    with open(temp, "w", encoding="utf-8") as fh:
+        json.dump(info, fh, indent=1)
+    os.replace(temp, os.path.join(folder, name))
+    # Unsplash asks apps to report when a photo is used.
+    if candidate.get("download_location"):
+        try:
+            http_get(candidate["download_location"], cfg["timeout_seconds"], as_json=True,
+                     headers=_unsplash_headers(unsplash_key(cfg)))
+        except Exception as exc:
+            log(f"Unsplash download report failed: {exc}")
+    log(f"saved {name} (Unsplash, {candidate.get('topic')})")
+    return name
+
+
+def read_unsplash(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            info = json.load(fh)
+        return info if isinstance(info, dict) and info.get("url") else None
+    except Exception:
+        return None
+
+
+# ----------------------------------------------------------------- fetching
+
+def download_one(cfg, folder, state):
+    """Grab one unseen wallpaper in the current style. Returns the filename, or None."""
+    if style(cfg) == "anime":
+        providers = []
+        if cfg.get("use_konachan"):
+            providers.append(konachan_candidates)
+        if cfg.get("use_wallhaven"):
+            providers.append(wallhaven_candidates)
+    else:
+        providers = [unsplash_candidates]
+    if not providers:
+        log("no sources enabled in config")
+        return None
+
+    random.shuffle(providers)
+
+    for provider in providers:
+        try:
+            candidates = provider(cfg)
+        except Exception as exc:
+            log(f"{provider.__name__} failed: {exc}")
+            continue
+
+        fresh = [
+            c for c in candidates if c["id"] not in state["seen"].get(c["source"], [])
+        ]
+        random.shuffle(fresh)
+
+        for candidate in fresh[:5]:
+            seen = state["seen"].setdefault(candidate["source"], [])
+            safe_id = re.sub(r"[^A-Za-z0-9_-]", "", candidate["id"])
+            if candidate["source"] == "unsplash":
+                if os.path.exists(os.path.join(folder, f"{UNSPLASH_PREFIX}{safe_id}.json")):
+                    seen.append(candidate["id"])
+                    continue
+                try:
+                    name = save_unsplash(cfg, candidate, folder)
+                except Exception as exc:
+                    log(f"could not save Unsplash photo {candidate['id']}: {exc}")
+                    continue
+                seen.append(candidate["id"])
+                return name
+            name = f"{PREFIX}{candidate['source']}_{safe_id}{extension_of(candidate['url'])}"
+            destination = os.path.join(folder, name)
+            if os.path.exists(destination):
+                seen.append(candidate["id"])
+                continue
+            try:
+                data = http_get(candidate["url"], cfg["timeout_seconds"])
+            except Exception as exc:
+                log(f"download failed for {candidate['url']}: {exc}")
+                continue
+            if len(data) < 20_000:  # almost certainly an error page, not a wallpaper
+                continue
+            # Write to a temp name first so a half-finished file is never picked up.
+            temp = destination + ".part"
+            with open(temp, "wb") as fh:
+                fh.write(data)
+            os.replace(temp, destination)
+            seen.append(candidate["id"])
+            log(f"saved {name} ({len(data) // 1024} KB)")
+            return name
+
+    return None
+
+
+def _remove(path):
+    os.remove(path)
+    if path.endswith(".json"):  # an Unsplash note: its thumbnail goes too
+        thumb = os.path.join(THUMB_DIR, os.path.basename(path)[:-5] + ".jpg")
+        if os.path.exists(thumb):
+            os.remove(thumb)
+
+
+def prune(folder, cfg):
+    """Delete auto-downloaded files older than delete_after_days.
+
+    Only files starting with PREFIX are ever considered, so your own pictures
+    in this folder are never touched. The newest few are always kept even if
+    they are past the age limit, so a stretch of failed downloads can't leave
+    the folder empty and the background blank.
+    """
+    max_age_days = float(cfg.get("delete_after_days") or 0)
+    floor = int(cfg.get("always_keep_newest") or 0)
+    hard_cap = int(cfg.get("max_images_kept") or 0)
+
+    ours = []
+    for entry in os.scandir(folder):
+        if entry.is_file() and entry.name.startswith(PREFIX) and not entry.name.endswith(".part"):
+            ours.append((entry.stat().st_mtime, entry.path))
+    if not ours:
+        return
+
+    ours.sort(reverse=True)  # newest first
+    protected = {path for _, path in ours[:floor]} if floor > 0 else set()
+
+    if max_age_days > 0:
+        cutoff = time.time() - max_age_days * 86400
+        for mtime, path in ours:
+            if mtime < cutoff and path not in protected:
+                try:
+                    _remove(path)
+                    age = (time.time() - mtime) / 86400
+                    log(f"pruned {os.path.basename(path)} ({age:.1f} days old)")
+                except Exception as exc:
+                    log(f"could not prune {path}: {exc}")
+
+    # Optional extra safety net: cap the total number of downloaded files.
+    if hard_cap > 0:
+        remaining = sorted(
+            (m, p) for m, p in ours if os.path.exists(p)
+        )  # oldest first
+        for _, path in remaining[: max(0, len(remaining) - hard_cap)]:
+            try:
+                _remove(path)
+                log(f"pruned {os.path.basename(path)} (over the {hard_cap} file cap)")
+            except Exception as exc:
+                log(f"could not prune {path}: {exc}")
+
+
+def worker(force=False):
+    try:
+        cfg = get_config()
+        folder = target_folder()
+        state = load_state()
+
+        today = date.today().isoformat()
+        if state["last_date"] != today:
+            state["last_date"] = today
+            state["count_today"] = 0
+
+        quota = int(cfg.get("images_per_day") or 0)
+        wanted = quota if force else max(0, quota - int(state["count_today"]))
+        if wanted <= 0:
+            log("daily quota already met, nothing to do")
+            return
+
+        saved = 0
+        for _ in range(wanted):
+            name = download_one(cfg, folder, state)
+            if not name:
+                break
+            saved += 1
+            if not force:
+                state["count_today"] += 1
+            time.sleep(2)  # be polite to both sites
+
+        prune(folder, cfg)
+        save_state(state)
+
+        if saved:
+            mw.taskman.run_on_main(lambda: [fn() for fn in list(on_fetched)])
+        if saved and (force or cfg.get("show_notification")):
+            mw.taskman.run_on_main(
+                lambda: tooltip(f"{saved} new wallpaper(s)")
+            )
+        log(f"run finished, {saved} new file(s) in {folder}")
+    except Exception as exc:
+        log(f"unexpected error: {exc}")
+
+
+def start(force=False):
+    threading.Thread(target=worker, kwargs={"force": force}, daemon=True).start()
+
+
+# -------------------------------------------------------------- Anki wiring
+
+def on_profile_open():
+    start(force=False)
+
+
+def fetch_now():
+    tooltip("Getting new wallpapers in the background…")
+    start(force=True)
+
+
+def open_folder():
+    openFolder(target_folder())
+
+
+def add_menu_items(menu):
+    action = QAction("Fetch wallpapers now", mw)
+    action.triggered.connect(fetch_now)
+    menu.addAction(action)
+
+
+gui_hooks.profile_did_open.append(on_profile_open)

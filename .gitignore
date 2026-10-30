@@ -1,0 +1,11 @@
+dist/
+__pycache__/
+*.pyc
+.DS_Store
+meta.json
+src/frosted_glass_theme/user_files/background/
+src/frosted_glass_theme/user_files/gear/
+src/frosted_glass_theme/user_files/*.json
+src/frosted_glass_theme/user_files/*.txt
+!src/frosted_glass_theme/user_files/css/README.txt
+src/frosted_glass_theme/user_files/.*
