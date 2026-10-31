@@ -8,8 +8,10 @@
 body #qa {
   box-sizing: border-box !important;
   max-width: min(var(--fg-width, 860px), 100%) !important;
-  /* a steady size: short cards all share this height, long ones grow */
-  min-height: min(var(--fg-height, 0px), 82vh) !important;
+  /* Anki hides #qa (opacity 0) while it swaps in the next card. On some
+     Windows PCs that makes the whole blurred panel blink off and on, so the
+     panel stays put and only its contents are hidden during the swap. */
+  opacity: 1 !important;
   margin: 4vh auto !important;
   padding: 30px 38px !important;
   border-radius: var(--fg-radius, 18px) !important;
@@ -27,9 +29,28 @@ body.night_mode #qa {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.32);
 }
 
+body #qa[style*="opacity: 0"] > * {
+  opacity: 0 !important;
+}
+
+/* Card height set in Settings: the panel keeps exactly that height (as much
+   of it as fits in the window), and a long card scrolls inside it. */
+html.fg-fixed body #qa {
+  height: min(var(--fg-height, 360px), 88vh) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+html.fg-fixed body #qa::-webkit-scrollbar { width: 8px; }
+html.fg-fixed body #qa::-webkit-scrollbar-thumb {
+  background: rgba(127, 127, 127, 0.35);
+  border-radius: 4px;
+}
+
 /* Before the first card is drawn, show nothing. */
-body #qa:empty {
-  min-height: 0 !important;
+body #qa:empty,
+html.fg-fixed body #qa:empty {
+  height: 0 !important;
   background: none !important;
   border-color: transparent !important;
   -webkit-backdrop-filter: none !important;

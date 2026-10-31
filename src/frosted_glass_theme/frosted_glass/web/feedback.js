@@ -81,6 +81,7 @@
     Object.keys(vars).forEach(function (k) { root.style.setProperty(k, vars[k]); });
     var sheet = document.getElementById("fg-glass-css");
     if (sheet) sheet.disabled = !c.glass;
+    root.classList.toggle("fg-fixed", !!c.fixed_height);
     // Card text size: only the base size changes; bold, colors etc. are untouched,
     // and text sized relative to it (em, %) follows along.
     var size = document.getElementById("fg-text-size");
@@ -128,6 +129,9 @@
 
   window.fgSide = function (answerShown) {
     window.fgAnswerShown = answerShown;
+    // a new card starts at its top, like Anki does for the whole page
+    var qa = document.getElementById("qa");
+    if (qa && !answerShown) qa.scrollTop = 0;
     last = { ease: 0, t: -1e9 };
   };
 
