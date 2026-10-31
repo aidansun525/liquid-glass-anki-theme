@@ -414,21 +414,36 @@ def on_config_saved(cfg):
     apply_live()
 
 
+# 1.0 marked its first run with an empty file; these are the pictures it added
+FIRST_DEFAULTS = ("Default - Canyon.jpg", "Default - Sea at Dusk.jpg", "Default - Twilight.jpg")
+
+
 def ensure_folders():
     import shutil
     for folder in (BG_DIR, GEAR_DIR, CSS_DIR):
         os.makedirs(folder, exist_ok=True)
     # first run: start with the built-in wallpapers
     defaults = os.path.join(USER_FILES, "default_wallpapers")
+    # later versions: add any new built-in ones (but never bring back one you deleted)
     marker = os.path.join(USER_FILES, ".default_wallpapers_copied")
-    if os.path.isdir(defaults) and not os.path.exists(marker):
-        for name in _list(defaults):
+    try:
+        with open(marker, encoding="utf-8") as f:
+            done = set(json.loads(f.read() or "null") or FIRST_DEFAULTS)
+    except FileNotFoundError:
+        done = set()
+    except Exception:
+        done = set(FIRST_DEFAULTS)
+    if os.path.isdir(defaults):
+        new = [n for n in _list(defaults) if n not in done]
+        for name in new:
             if not os.path.exists(os.path.join(BG_DIR, name)):
                 shutil.copy2(os.path.join(defaults, name), os.path.join(BG_DIR, name))
-        try:
-            open(marker, "w").close()
-        except OSError:
-            pass
+        if new or not os.path.exists(marker):
+            try:
+                with open(marker, "w", encoding="utf-8") as f:
+                    json.dump(sorted(done | set(new)), f)
+            except OSError:
+                pass
     # first run without the old add-on: start with the bundled gear icons
     default_gears = os.path.join(USER_FILES, "default_gear")
     if not gears() and os.path.isdir(default_gears):

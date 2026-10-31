@@ -15,12 +15,15 @@ from aqt import mw
 # before anything below picks a wallpaper.
 from . import migrate
 
-migrate.run(__name__)
+# If you have this add-on installed twice (from a file and from AnkiWeb), the
+# newest copy takes over the older one's settings and pictures and turns it off.
+if migrate.take_over_other_copies(__name__):
+    migrate.run(__name__)
 
-# Serve user_files/ (wallpapers, gears, custom sounds) and web/ to the screens.
-mw.addonManager.setWebExports(__name__, r"(user_files.*|web.*)")
+    # Serve user_files/ (wallpapers, gears, custom sounds) and web/ to the screens.
+    mw.addonManager.setWebExports(__name__, r"(user_files.*|web.*)")
 
-from . import background  # noqa: E402,F401
-from . import wallpaper_fetcher  # noqa: E402,F401
-from . import frosted_glass  # noqa: E402,F401
-from . import theme_menu  # noqa: E402,F401
+    from . import background  # noqa: E402,F401
+    from . import wallpaper_fetcher  # noqa: E402,F401
+    from . import frosted_glass  # noqa: E402,F401
+    from . import theme_menu  # noqa: E402,F401

@@ -32,6 +32,8 @@ A calm, good-looking Anki. Your cards sit on a pane of frosted glass over a wall
 
 **From a file:** download `frosted_glass_theme.ankiaddon` from the [latest release](https://github.com/aidansun525/liquid-glass-anki-theme/releases/latest). Then go to Tools → Add-ons → Install from File… and restart Anki.
 
+Updating keeps your settings and pictures. If you switch between installing from a file and installing from AnkiWeb, the copy you install last brings over everything from the other one and turns the other one off. You can then delete the old copy from Tools → Add-ons.
+
 It needs Anki 2.1.50 or newer and works on Windows, macOS and Linux.
 
 ## Using it

@@ -32,6 +32,7 @@ KNOWN = {
 
 summary = []      # shown to the user once the main window is ready
 disabled = []
+copy_note = []    # about other installed copies of this same add-on
 
 
 def log(msg):
@@ -68,6 +69,8 @@ def find_old():
         path = os.path.join(root, entry)
         if entry == ours or not os.path.isdir(path):
             continue
+        if is_copy(entry):
+            continue  # another copy of this add-on, handled by take_over_other_copies()
         name = _addon_name(path).lower()
         for kind, rule in KNOWN.items():
             if kind in found:
@@ -75,6 +78,106 @@ def find_old():
             if entry in rule["dirs"] or any(n in name for n in rule["names"]):
                 found[kind] = entry
     return found
+
+
+# ---------------------------------------------------------------- other copies of this add-on
+# Installing from a file puts the add-on in addons21/frosted_glass_theme;
+# installing with the AnkiWeb code puts it in addons21/<code>. Switching
+# between the two leaves two copies with separate settings and pictures.
+# The copy installed most recently takes over: on its first launch it brings
+# over the other copy's settings and pictures, and it turns the other copy off.
+
+FIRST_RUN_MARKER = os.path.join(USER_FILES, ".default_wallpapers_copied")
+NOT_INHERITED = ("default_wallpapers", "default_gear")  # these come with each version
+
+
+def is_copy(entry):
+    """True if addons21/<entry> is a copy of this add-on (any version)."""
+    path = os.path.join(os.path.dirname(ADDON_DIR), entry)
+    if not all(os.path.isfile(os.path.join(path, *f)) for f in
+               (("background.py",), ("wallpaper_fetcher", "__init__.py"), ("frosted_glass", "web", "glass.css"))):
+        return False
+    # the earlier private build has the same layout; it's imported separately
+    return entry not in KNOWN["theme"]["dirs"] and "anime study" not in _addon_name(path).lower()
+
+
+def _installed_at(path):
+    try:
+        return os.path.getmtime(os.path.join(path, "__init__.py"))
+    except OSError:
+        return 0
+
+
+def _other_copies():
+    root = os.path.dirname(ADDON_DIR)
+    ours = os.path.basename(ADDON_DIR)
+    try:
+        entries = os.listdir(root)
+    except Exception:
+        return []
+    return [e for e in entries if e != ours and os.path.isdir(os.path.join(root, e)) and is_copy(e)]
+
+
+def _enabled(entry):
+    try:
+        return mw.addonManager.isEnabled(entry)
+    except Exception:
+        return False
+
+
+def inherit_from(entry, module):
+    """Copy another copy's settings and pictures into this fresh copy."""
+    src = os.path.join(os.path.dirname(ADDON_DIR), entry, "user_files")
+    pics = 0
+    for folder, _dirs, files in os.walk(src):
+        rel = os.path.relpath(folder, src)
+        if rel.split(os.sep)[0] in NOT_INHERITED:
+            continue
+        for name in files:
+            if name.endswith((".part", ".tmp", "log.txt")):
+                continue
+            dst_dir = os.path.join(USER_FILES, rel)
+            os.makedirs(dst_dir, exist_ok=True)
+            shutil.copy2(os.path.join(folder, name), os.path.join(dst_dir, name))
+            if rel == "background" and name.lower().endswith(IMAGE_EXT):
+                pics += 1
+    old_cfg = mw.addonManager.getConfig(entry)
+    if isinstance(old_cfg, dict) and old_cfg:
+        cfg = mw.addonManager.getConfig(module) or {}
+        cfg.update(old_cfg)
+        mw.addonManager.writeConfig(module, cfg)
+    return pics
+
+
+def take_over_other_copies(module):
+    """Returns False if a newer copy of this add-on is installed and enabled;
+    that copy is in charge, so this one should stay idle."""
+    copies = _other_copies()
+    if not copies:
+        return True
+    root = os.path.dirname(ADDON_DIR)
+    mine = _installed_at(ADDON_DIR)
+    if any(_enabled(c) and _installed_at(os.path.join(root, c)) > mine for c in copies):
+        log("a newer copy of this add-on is installed; staying idle")
+        return False
+    older = sorted(copies, key=lambda c: (_enabled(c), _installed_at(os.path.join(root, c))), reverse=True)
+    # Carry on where you left off: from the copy you were using (the newest
+    # one that's still on), or on a fresh install, from the newest copy at all.
+    source = older[0] if _enabled(older[0]) or not os.path.exists(FIRST_RUN_MARKER) else None
+    if source:
+        try:
+            pics = inherit_from(source, module)
+            copy_note.append(f"Brought over your settings and {pics} picture(s) from the copy installed earlier.")
+        except Exception:
+            log(f"inheriting from {source} failed:\n" + traceback.format_exc())
+    for c in older:
+        if _enabled(c):
+            try:
+                mw.addonManager.toggleEnabled(c, enable=False)
+                disabled.append(f"the older copy of Frosted Glass ({c})")
+            except Exception:
+                log(f"could not disable {c}:\n" + traceback.format_exc())
+    return True
 
 
 def _copy_tree_files(src, dst, exts=None):
@@ -200,12 +303,12 @@ def run(module):
 
 def message():
     """A short note for the user after the first launch, or None."""
-    if not summary and not disabled:
+    if not summary and not disabled and not copy_note:
         return None
-    parts = []
+    parts = list(copy_note)
     if summary:
         parts.append("Imported " + ", ".join(summary) + ".")
     if disabled:
-        parts.append("Turned off the old add-ons (" + ", ".join(disabled) +
-                     "). Restart Anki once so they stop loading.")
+        parts.append("Turned off " + ", ".join(disabled) +
+                     ". Restart Anki once so it stops loading.")
     return "Frosted Glass: " + " ".join(parts)
