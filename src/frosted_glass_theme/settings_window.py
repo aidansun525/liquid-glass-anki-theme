@@ -441,8 +441,8 @@ class GlassTab(QWidget):
                                   lambda v, k=key, s=scale: self._set(k, round(v * s, 2)),
                                   zero_text="Fit to card" if key == "panel_min_height_px" else None)
             if key == "panel_min_height_px":
-                slider.setToolTip("The card panel keeps this height on every card (up to the size of the window). "
-                                  "Longer cards scroll inside it. Slide all the way left to fit each card instead.")
+                slider.setToolTip("The smallest the card panel gets: shorter cards all share this height, so the panel stays still. "
+                                  "Longer cards grow smoothly.")
             grid.addRow(label, row)
             self.sliders[key] = (slider, scale)
         layout.addWidget(card)

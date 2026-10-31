@@ -152,7 +152,6 @@ def page_config(cfg):
         "colors": {k: _color(cfg["colors"].get(k), DEFAULTS["colors"][k]) for k in KEYS},
         "sounds": {k: u for k in KEYS if (u := sound_url(k))},
         "text_px": int(_num(cfg.get("card_font_px"), 0, 0, 96)),
-        "fixed_height": _num(cfg.get("panel_min_height_px"), 360, 0, 2000) > 0,
         "glow_on": bool(cfg.get("visual_feedback_enabled", True)),
         "sound_on": bool(cfg.get("sound_enabled", True)),
         "answer_keys": answer_keys(),

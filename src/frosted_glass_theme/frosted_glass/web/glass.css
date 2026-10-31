@@ -12,6 +12,9 @@ body #qa {
      Windows PCs that makes the whole blurred panel blink off and on, so the
      panel stays put and only its contents are hidden during the swap. */
   opacity: 1 !important;
+  /* Card height from Settings is the smallest the panel gets: short cards
+     all share it, long ones grow past it. Capped only so it fits the window. */
+  min-height: min(var(--fg-height, 0px), 88vh) !important;
   margin: 4vh auto !important;
   padding: 30px 38px !important;
   border-radius: var(--fg-radius, 18px) !important;
@@ -33,24 +36,9 @@ body #qa[style*="opacity: 0"] > * {
   opacity: 0 !important;
 }
 
-/* Card height set in Settings: the panel keeps exactly that height (as much
-   of it as fits in the window), and a long card scrolls inside it. */
-html.fg-fixed body #qa {
-  height: min(var(--fg-height, 360px), 88vh) !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-}
-html.fg-fixed body #qa::-webkit-scrollbar { width: 8px; }
-html.fg-fixed body #qa::-webkit-scrollbar-thumb {
-  background: rgba(127, 127, 127, 0.35);
-  border-radius: 4px;
-}
-
 /* Before the first card is drawn, show nothing. */
-body #qa:empty,
-html.fg-fixed body #qa:empty {
-  height: 0 !important;
+body #qa:empty {
+  min-height: 0 !important;
   background: none !important;
   border-color: transparent !important;
   -webkit-backdrop-filter: none !important;

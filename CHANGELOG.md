@@ -3,8 +3,7 @@
 ## 1.1
 
 - Fixed: the glass card flashed every time a new card appeared on some PCs. The card now stays on screen and only its text changes.
-- Fixed: the card didn't keep the height you set. It now stays at exactly that height on every card, and a long card scrolls inside it instead of stretching the panel. Very tall settings are limited only by the size of the window.
-- Set Card height all the way left ("Fit to card") if you'd rather the card size itself to each card, as before.
+- Fixed: the card didn't reach the height you set when your Anki window was small, because it was capped at 82% of the window. The card height you set is now the minimum on every card, up to the full height the window allows. Longer cards still grow past it.
 
 ## 1.0 (first public release)
 
