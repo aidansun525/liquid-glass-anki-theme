@@ -45,6 +45,7 @@ DEFAULTS = {
     "panel_max_width_px": 860,
     "panel_min_height_px": 360,
     "card_font_px": 0,
+    "sound_device": "",        # "" = system default; else the device's name
     "corner_radius_px": 18,
     "colors": {"again": "#ff7a8a", "hard": "#ffc56b", "good": "#7fe0a8", "easy": "#8cc8ff"},
 }
@@ -154,6 +155,8 @@ def page_config(cfg):
         "text_px": int(_num(cfg.get("card_font_px"), 0, 0, 96)),
         "glow_on": bool(cfg.get("visual_feedback_enabled", True)),
         "sound_on": bool(cfg.get("sound_enabled", True)),
+        # a chosen speaker is played through Qt, which can pick the device
+        "native_sound": chosen_device(cfg) is not None,
         "answer_keys": answer_keys(),
         "vars": {
             "--fg-blur": f"{_num(cfg.get('blur_px'), 22, 0, 60):g}px",
@@ -230,7 +233,32 @@ _next = {}
 _sound_ok = None
 
 
-def load_sounds():
+def output_devices():
+    """Names of the speakers and headphones Qt can play to."""
+    try:
+        from PyQt6.QtMultimedia import QMediaDevices
+        return [d.description() for d in QMediaDevices.audioOutputs()]
+    except Exception:
+        return []
+
+
+def chosen_device(cfg=None):
+    """The QAudioDevice picked in Settings, or None for the system default
+    (also when the picked one isn't plugged in right now)."""
+    name = str((cfg or get_config()).get("sound_device") or "")
+    if not name:
+        return None
+    try:
+        from PyQt6.QtMultimedia import QMediaDevices
+        for device in QMediaDevices.audioOutputs():
+            if device.description() == name:
+                return device
+    except Exception:
+        pass
+    return None
+
+
+def load_sounds(cfg=None):
     global _sound_ok
     _effects.clear()
     try:
@@ -239,7 +267,9 @@ def load_sounds():
         _sound_ok = False
         log("QtMultimedia not available.\n" + traceback.format_exc())
         return
-    volume = _num(get_config().get("sound_volume"), 0.3, 0.0, 1.0)
+    cfg = cfg or get_config()
+    volume = _num(cfg.get("sound_volume"), 0.3, 0.0, 1.0)
+    device = chosen_device(cfg)
     for key in KEYS:
         path = sound_path(key)
         if not path:
@@ -247,6 +277,8 @@ def load_sounds():
         players = []
         for _ in range(2):
             effect = QSoundEffect(mw)
+            if device is not None:
+                effect.setAudioDevice(device)
             effect.setSource(QUrl.fromLocalFile(path))
             effect.setVolume(volume)
             players.append(effect)

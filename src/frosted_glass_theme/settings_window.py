@@ -469,7 +469,20 @@ class GlassTab(QWidget):
         slider.sliderReleased.connect(lambda: fg.play_native("good"))
         self.sliders["sound_volume"] = (slider, 0.01)
         agrid.addLayout(row, 2, 1, 1, 2)
-        agrid.addWidget(QLabel("Listen"), 3, 0)
+        agrid.addWidget(QLabel("Play on"), 3, 0)
+        self.device = QComboBox()
+        self.device.addItem("System default", "")
+        for name in fg.output_devices():
+            self.device.addItem(name, name)
+        current = str(self.cfg.get("sound_device") or "")
+        if current and self.device.findData(current) < 0:
+            self.device.addItem(f"{current} (not connected)", current)
+        self.device.setCurrentIndex(max(0, self.device.findData(current)))
+        self.device.setToolTip("Which speakers or headphones play the piano note. "
+                               "If the one you pick isn't connected, the system default is used.")
+        self.device.currentIndexChanged.connect(self._device_changed)
+        agrid.addWidget(self.device, 3, 1, 1, 2)
+        agrid.addWidget(QLabel("Listen"), 4, 0)
         listen = QHBoxLayout()
         for key in fg.KEYS:
             b = QPushButton(key.capitalize())
@@ -478,7 +491,7 @@ class GlassTab(QWidget):
             b.clicked.connect(lambda _c=False, k=key: fg.play_native(k))
             listen.addWidget(b)
         listen.addStretch(1)
-        agrid.addLayout(listen, 3, 1, 1, 2)
+        agrid.addLayout(listen, 4, 1, 1, 2)
         agrid.setColumnStretch(1, 1)
         layout.addWidget(answer)
 
@@ -513,10 +526,16 @@ class GlassTab(QWidget):
             web.eval(f"window.fgApply && window.fgApply({json.dumps(fg.page_config(self.cfg))});")
         fg.sync_menu(self.cfg)
 
+    def _device_changed(self, _index):
+        self._set("sound_device", self.device.currentData() or "")
+        fg.load_sounds(self.cfg)
+        fg.play_native("good")
+
     def restore_defaults(self):
         for key, (slider, scale) in self.sliders.items():
             slider.setValue(int(round(fg.DEFAULTS[key] / scale)))
         self.text_slider.setValue(TEXT_OFF)
+        self.device.setCurrentIndex(0)
         for option, box in self.checks.items():
             box.setChecked(fg.DEFAULTS[option])
 

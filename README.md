@@ -12,7 +12,7 @@ A calm, good-looking Anki. Your cards sit on a pane of frosted glass over a wall
   - **Anime art** from Konachan and Wallhaven, safe-rated pictures only.
   - Or turn downloads off and keep one picture forever. Four built-in wallpapers are included, and you can add your own.
 - **Frosted-glass card** with adjustable opacity, blur, width, height and corner roundness. Cards keep a steady size, and longer cards grow smoothly.
-- **Answer feedback**: a soft glow in the answer's color, plus a short piano note (Again, Hard, Good and Easy each have their own). You can adjust the volume or turn either off, and use your own sounds if you like.
+- **Answer feedback**: a soft glow in the answer's color, plus a short piano note (Again, Hard, Good and Easy each have their own). You can adjust the volume, pick which speakers or headphones play it, or turn either off, and use your own sounds if you like.
 - **Card text size** slider. It changes only the size; bold, colors and links stay as they are.
 - **New wallpaper** button on the deck list, and **Ctrl+Shift+W** anywhere.
 - **Custom deck gear icons** (optional).

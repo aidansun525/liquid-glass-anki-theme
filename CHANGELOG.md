@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3
+
+- New: choose which speakers or headphones play the piano note (Settings → Glass & sound → Play on). If the one you picked isn't connected, the system default is used.
+
 ## 1.2
 
 - Fixed: the card and glass panel still flashed when a new card loaded on some Windows PCs. The frosted glass is now its own layer behind the card, so loading a card never redraws it, and the new card's text simply replaces the old one instead of blinking out first.

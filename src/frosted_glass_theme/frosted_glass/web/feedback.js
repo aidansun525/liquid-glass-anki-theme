@@ -54,6 +54,8 @@
 
   function playSound(key) {
     var buf = buffers[key];
+    // A speaker chosen in Settings is played by the add-on, which can pick it.
+    if (cfg().native_sound && window.pycmd) { pycmd("fgsound:" + key); return; }
     if (ctx && buf && ctx.state === "running") {
       var src = ctx.createBufferSource();
       var fade = ctx.createGain();
