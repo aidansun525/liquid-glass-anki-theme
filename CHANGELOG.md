@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2
+
+- Fixed: the card and glass panel still flashed when a new card loaded on some Windows PCs. The frosted glass is now its own layer behind the card, so loading a card never redraws it, and the new card's text simply replaces the old one instead of blinking out first.
+
 ## 1.1
 
 - Fixed: the glass card flashed every time a new card appeared on some PCs. The card now stays on screen and only its text changes.

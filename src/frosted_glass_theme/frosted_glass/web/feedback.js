@@ -81,12 +81,46 @@
     Object.keys(vars).forEach(function (k) { root.style.setProperty(k, vars[k]); });
     var sheet = document.getElementById("fg-glass-css");
     if (sheet) sheet.disabled = !c.glass;
+    syncPane();
     // Card text size: only the base size changes; bold, colors etc. are untouched,
     // and text sized relative to it (em, %) follows along.
     var size = document.getElementById("fg-text-size");
     if (size) size.textContent = c.text_px > 0 ? "html body.card { font-size: " + c.text_px + "px !important; }" : "";
     setVolume();
   };
+
+  // The frosted glass layer, kept exactly behind the card (see glass.css).
+  function syncPane() {
+    var qa = document.getElementById("qa");
+    if (!qa || !document.body) return;
+    var pane = document.getElementById("fg-pane");
+    if (!pane) {
+      pane = document.createElement("div");
+      pane.id = "fg-pane";
+      document.body.insertBefore(pane, document.body.firstChild);
+    }
+    pane.hidden = !cfg().glass;
+    if (pane.hidden) return;
+    pane.classList.toggle("fg-empty", !qa.firstChild);
+    // move by the difference between where the pane is and where the card is,
+    // so it lines up whatever the pane is positioned against
+    var p = pane.getBoundingClientRect(), q = qa.getBoundingClientRect();
+    var left = (parseFloat(pane.style.left) || 0) + q.left - p.left;
+    var top = (parseFloat(pane.style.top) || 0) + q.top - p.top;
+    pane.style.left = left + "px";
+    pane.style.top = top + "px";
+    pane.style.width = q.width + "px";
+    pane.style.height = q.height + "px";
+  }
+
+  function watchPane() {
+    var qa = document.getElementById("qa");
+    if (!qa) return;
+    syncPane();
+    // size changes are followed from watchHeight's observer below
+    new MutationObserver(syncPane).observe(qa, { childList: true });
+    window.addEventListener("resize", syncPane);
+  }
 
   function rgba(hex, a) {
     var h = String(hex || "").replace("#", "");
@@ -161,8 +195,8 @@
       glassSheetPresent: !!sheet,
       glassSheetDisabled: sheet ? sheet.disabled : null,
       qaFound: !!qa,
-      qaBackground: cs ? cs.backgroundColor : null,
-      qaBackdrop: cs ? (cs.backdropFilter || cs.webkitBackdropFilter) : null,
+      paneFound: !!document.getElementById("fg-pane"),
+      paneBackdrop: document.getElementById("fg-pane") ? (getComputedStyle(document.getElementById("fg-pane")).backdropFilter || getComputedStyle(document.getElementById("fg-pane")).webkitBackdropFilter) : null,
       qaWidth: qa ? qa.getBoundingClientRect().width : null,
       supportsBackdrop: !!(window.CSS && CSS.supports && (CSS.supports("backdrop-filter", "blur(1px)") || CSS.supports("-webkit-backdrop-filter", "blur(1px)"))),
       bodyClass: document.body ? document.body.className : null,
@@ -186,29 +220,37 @@
   // heights instead of snapping, so the edge (and any glow on it) moves smoothly.
   function watchHeight() {
     var qa = document.getElementById("qa");
-    if (!qa || !window.ResizeObserver || !qa.animate) return;
+    if (!qa || !window.ResizeObserver) return;
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var lastH = 0;
     // Stop watching while the panel eases to its new size, so the animation
     // itself doesn't trigger more resize notifications.
     var ro = new ResizeObserver(function () {
       var h = qa.getBoundingClientRect().height;
-      if (lastH && h && !reduce && cfg().glass && Math.abs(h - lastH) > 4) {
+      if (lastH && h && !reduce && qa.animate && cfg().glass && Math.abs(h - lastH) > 4) {
         ro.unobserve(qa);
         var a = qa.animate(
           [{ height: lastH + "px", overflow: "hidden" }, { height: h + "px", overflow: "hidden" }],
           { duration: 240, easing: "cubic-bezier(.3,.6,.4,1)" }
         );
-        a.onfinish = a.oncancel = function () { lastH = qa.getBoundingClientRect().height; ro.observe(qa); };
+        a.onfinish = a.oncancel = function () { lastH = qa.getBoundingClientRect().height; ro.observe(qa); syncPane(); };
+        // the glass layer follows the card's edge on every frame of the ease
+        (function follow() { syncPane(); if (a.playState === "running") requestAnimationFrame(follow); })();
         return;
       }
       lastH = h;
+      syncPane();
     });
     ro.observe(qa);
   }
 
   window.fgApply();
   initAudio();
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watchHeight);
-  else watchHeight();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", watchHeight);
+    document.addEventListener("DOMContentLoaded", watchPane);
+  } else {
+    watchHeight();
+    watchPane();
+  }
 })();
