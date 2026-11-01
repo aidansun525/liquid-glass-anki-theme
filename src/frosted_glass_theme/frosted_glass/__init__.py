@@ -31,6 +31,7 @@ CONFIG_PATH = os.path.join(ADDON_DIR, "user_files", "frosted_glass.json")
 LOG_PATH = os.path.join(ADDON_DIR, "user_files", "frosted_glass_log.txt")
 
 KEYS = ("again", "hard", "good", "easy")
+FINISH = "finish"   # the chime when a deck is done for now
 EASE_TO_KEY = {1: "again", 2: "hard", 3: "good", 4: "easy"}
 CONFIG_VERSION = 3
 
@@ -44,6 +45,7 @@ DEFAULTS = {
     "glass_strength": 0.4,
     "panel_max_width_px": 860,
     "panel_min_height_px": 360,
+    "panel_top_vh": 4,         # gap above the card, in % of the window height
     "card_font_px": 0,
     "sound_device": "",        # "" = system default; else the device's name
     "corner_radius_px": 18,
@@ -162,6 +164,7 @@ def page_config(cfg):
             "--fg-blur": f"{_num(cfg.get('blur_px'), 22, 0, 60):g}px",
             "--fg-width": f"{_num(cfg.get('panel_max_width_px'), 860, 300, 4000):g}px",
             "--fg-height": f"{_num(cfg.get('panel_min_height_px'), 360, 0, 2000):g}px",
+            "--fg-top": f"{_num(cfg.get('panel_top_vh'), 4, 0, 40):g}vh",
             "--fg-radius": f"{_num(cfg.get('corner_radius_px'), 18, 0, 60):g}px",
             "--fg-tint-light": f"rgba(255, 255, 255, {strength:.2f})",
             "--fg-tint-dark": f"rgba(16, 17, 22, {min(1.0, strength + 0.02):.2f})",
@@ -270,7 +273,7 @@ def load_sounds(cfg=None):
     cfg = cfg or get_config()
     volume = _num(cfg.get("sound_volume"), 0.3, 0.0, 1.0)
     device = chosen_device(cfg)
-    for key in KEYS:
+    for key in KEYS + (FINISH,):
         path = sound_path(key)
         if not path:
             continue
@@ -416,7 +419,35 @@ def on_profile_open():
     sync_menu()
 
 
+# ---------------------------------------------------------------- deck finished
+
+def _cards_left():
+    sched = mw.col.sched
+    try:
+        return bool(sched.get_queued_cards(fetch_limit=1).cards)
+    except Exception:
+        return sum(sched.counts()) > 0
+
+
+def on_state_change(new_state, old_state):
+    """Leaving the review because nothing is left to study: a soft chime."""
+    if old_state != "review" or new_state != "overview":
+        return
+    try:
+        cfg = get_config()
+        if not cfg.get("sound_enabled", True):
+            return
+        if _cards_left():
+            return  # you left early; cards are still waiting
+        # a moment after the last answer's note, so the two don't blur together
+        from aqt.qt import QTimer
+        QTimer.singleShot(450, lambda: play_native(FINISH))
+    except Exception:
+        log("finish chime failed:\n" + traceback.format_exc())
+
+
 gui_hooks.webview_will_set_content.append(inject)
+gui_hooks.state_did_change.append(on_state_change)
 gui_hooks.reviewer_will_answer_card.append(on_will_answer)
 gui_hooks.reviewer_did_show_question.append(lambda card: _side(False))
 gui_hooks.reviewer_did_show_answer.append(lambda card: _side(True))

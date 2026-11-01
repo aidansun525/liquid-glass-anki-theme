@@ -415,6 +415,7 @@ GLASS_SLIDERS = (
     ("blur_px", "Blur", 0, 40, 1, " px"),
     ("panel_max_width_px", "Card width", 500, 1600, 1, " px"),
     ("panel_min_height_px", "Card height", 0, 900, 1, " px"),
+    ("panel_top_vh", "Distance from top", 0, 40, 1, "%"),
     ("corner_radius_px", "Corner roundness", 0, 40, 1, " px"),
 )
 # slider at its lowest = leave the note type's own size alone
@@ -443,6 +444,8 @@ class GlassTab(QWidget):
             if key == "panel_min_height_px":
                 slider.setToolTip("The smallest the card panel gets: shorter cards all share this height, so the panel stays still. "
                                   "Longer cards grow smoothly.")
+            if key == "panel_top_vh":
+                slider.setToolTip("Moves the card up or down: the gap above it, as a share of the window height.")
             grid.addRow(label, row)
             self.sliders[key] = (slider, scale)
         layout.addWidget(card)
@@ -462,7 +465,7 @@ class GlassTab(QWidget):
         answer = QGroupBox("When I answer")
         agrid = QGridLayout(answer)
         agrid.addWidget(self._check("visual_feedback_enabled", "Soft glow around the card"), 0, 0, 1, 3)
-        agrid.addWidget(self._check("sound_enabled", "Piano note"), 1, 0, 1, 3)
+        agrid.addWidget(self._check("sound_enabled", "Piano note (and a chime when a deck is done)"), 1, 0, 1, 3)
         agrid.addWidget(QLabel("Volume"), 2, 0)
         row, slider = _slider(0, 100, round(float(self.cfg.get("sound_volume", 0.3)) * 100), "%",
                               lambda v: self._set("sound_volume", round(v / 100, 2)))
@@ -484,9 +487,9 @@ class GlassTab(QWidget):
         agrid.addWidget(self.device, 3, 1, 1, 2)
         agrid.addWidget(QLabel("Listen"), 4, 0)
         listen = QHBoxLayout()
-        for key in fg.KEYS:
-            b = QPushButton(key.capitalize())
-            color = fg.get_config()["colors"].get(key, "#999")
+        for key in fg.KEYS + (fg.FINISH,):
+            b = QPushButton("Deck done" if key == fg.FINISH else key.capitalize())
+            color = fg.get_config()["colors"].get(key, "#b9a7e8")
             b.setStyleSheet(f"QPushButton {{ border-bottom: 3px solid {color}; }}")
             b.clicked.connect(lambda _c=False, k=key: fg.play_native(k))
             listen.addWidget(b)
@@ -497,7 +500,7 @@ class GlassTab(QWidget):
 
         extra = QHBoxLayout()
         sounds = QPushButton("Use my own sounds…")
-        sounds.setToolTip("Put again.wav, hard.wav, good.wav or easy.wav in this folder")
+        sounds.setToolTip("Put again.wav, hard.wav, good.wav, easy.wav or finish.wav (deck done) in this folder")
         sounds.clicked.connect(fg.open_sound_folder)
         diag = QPushButton("Copy diagnostics")
         diag.setToolTip("While reviewing: copies details that help fix glass or sound problems")

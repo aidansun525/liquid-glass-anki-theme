@@ -1,4 +1,9 @@
-## What's new in 1.3
+## What's new in 1.4
+
+- **Move the card up or down:** Settings → Glass & sound → *Distance from top*.
+- **Deck-done chime:** a soft piano chime, in the same tone as the answer notes, when you finish a deck. It doesn't play if you leave early, and it follows the Piano note switch, volume and speaker choice.
+
+## 1.3
 
 - **Choose your speakers:** pick which speakers or headphones play the piano note in Settings → Glass & sound → *Play on*. If the one you picked isn't connected, the system default is used.
 

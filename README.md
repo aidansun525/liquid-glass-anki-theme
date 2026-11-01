@@ -11,8 +11,8 @@ A calm, good-looking Anki. Your cards sit on a pane of frosted glass over a wall
   - **Professional photos** from [Wallhaven](https://wallhaven.cc)'s General category (no anime, no people), on the topics Nature, Architecture and Landscape, plus any tags you type in yourself.
   - **Anime art** from Konachan and Wallhaven, safe-rated pictures only.
   - Or turn downloads off and keep one picture forever. Four built-in wallpapers are included, and you can add your own.
-- **Frosted-glass card** with adjustable opacity, blur, width, height and corner roundness. Cards keep a steady size, and longer cards grow smoothly.
-- **Answer feedback**: a soft glow in the answer's color, plus a short piano note (Again, Hard, Good and Easy each have their own). You can adjust the volume, pick which speakers or headphones play it, or turn either off, and use your own sounds if you like.
+- **Frosted-glass card** with adjustable opacity, blur, width, height, position and corner roundness. Cards keep a steady size, and longer cards grow smoothly.
+- **Answer feedback**: a soft glow in the answer's color, plus a short piano note (Again, Hard, Good and Easy each have their own), and a soft chime when you finish a deck. You can adjust the volume, pick which speakers or headphones play it, or turn either off, and use your own sounds if you like.
 - **Card text size** slider. It changes only the size; bold, colors and links stay as they are.
 - **New wallpaper** button on the deck list, and **Ctrl+Shift+W** anywhere.
 - **Custom deck gear icons** (optional).
@@ -64,7 +64,7 @@ Everything you add or change lives in the add-on's `user_files` folder (Tools â†
 
 - `background/`: wallpapers. Drop in any `.jpg`, `.png` or `.webp`.
 - `gear/`: deck gear icons.
-- `glass_sounds/`: put `again.wav`, `hard.wav`, `good.wav` or `easy.wav` here to use your own sounds.
+- `glass_sounds/`: put `again.wav`, `hard.wav`, `good.wav`, `easy.wav` or `finish.wav` (deck done) here to use your own sounds.
 - `css/custom_*.css`: extra CSS for each screen, if you want to go further.
 
 ## Building from source

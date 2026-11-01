@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4
+
+- New: move the card up or down (Settings → Glass & sound → Distance from top).
+- New: a soft piano chime, in the same tone as the answer notes, when you finish a deck. It plays only when nothing is left to study, not when you leave early, and follows the Piano note switch, volume and speaker choice. Put your own `finish.wav` in the sounds folder to replace it.
+
 ## 1.3
 
 - New: choose which speakers or headphones play the piano note (Settings → Glass & sound → Play on). If the one you picked isn't connected, the system default is used.

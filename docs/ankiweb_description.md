@@ -6,8 +6,8 @@
 
 - **Wallpaper behind every screen**: deck list, overview, reviewer, and the top and bottom bars, lined up seamlessly in light and dark mode.
 - **New wallpapers every day**: professional photos (Nature, Architecture, Landscape, or your own tags) or anime art, safe-rated only, from Wallhaven and Konachan. You can also turn downloads off and keep one picture. Four built-in film photographs are included, and you can add your own.
-- **Frosted-glass card** with adjustable opacity, blur, width, height and corners. Cards keep a steady size.
-- **Answer feedback**: a soft glow and a short piano note, different for Again, Hard, Good and Easy. You can adjust the volume, choose which speakers or headphones play it, or turn either off.
+- **Frosted-glass card** with adjustable opacity, blur, width, height, position and corners. Cards keep a steady size.
+- **Answer feedback**: a soft glow and a short piano note, different for Again, Hard, Good and Easy, plus a soft chime when you finish a deck. You can adjust the volume, choose which speakers or headphones play it, or turn either off.
 - **Card text size** slider. It changes only the size, so bold, colors and links stay as they are.
 - **New wallpaper** button on the deck list, and Ctrl+Shift+W anywhere.
 - One **Settings** window (Tools → Frosted Glass → Settings). Changes show up live.
