@@ -1,6 +1,6 @@
 ## What's new in 1.2
 
-- **Flashing fixed for good:** on some Windows PCs the card and glass panel still flashed when a new card loaded. The glass is now a separate layer behind the card, so loading a card never redraws it, and the new text simply replaces the old.
+- **Less flashing on new cards:** on some Windows PCs the card and glass panel still flashed when a new card loaded. The glass is now a separate layer behind the card, so loading a card never redraws it, and the new text simply replaces the old.
 
 ## 1.1
 
