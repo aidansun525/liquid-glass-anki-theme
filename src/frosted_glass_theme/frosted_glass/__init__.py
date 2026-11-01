@@ -14,6 +14,8 @@ with the background settings.
 import json
 import os
 import re
+import subprocess
+import threading
 import traceback
 
 from aqt import gui_hooks, mw
@@ -231,83 +233,95 @@ def push_config_to_reviewer():
 # ---------------------------------------------------------------- native sound fallback
 # Used only if the review page can't play audio itself, and for previews.
 
-_effects = {}
-_next = {}
-_sound_ok = None
+# Notes are played by a short-lived copy of Anki's own mpv, never by QtMultimedia:
+# on Mac, Qt 6.11 crashes all of Anki when an output device goes away while a
+# QSoundEffect holds it (AirPods disconnecting, for example).
+
+_mpv = None
+_devices = {}   # description -> mpv device id
+_device = ""
+_volume = 0.3
+_no_window = {"creationflags": 0x08000000} if os.name == "nt" else {}
+
+
+def mpv_command():
+    """(command, environment) for Anki's mpv, or None if it can't be found."""
+    global _mpv
+    if _mpv is None:
+        try:
+            from aqt.sound import _packagedCmd
+            _mpv = _packagedCmd(["mpv"])
+        except Exception:
+            _mpv = False
+            log("mpv not available.\n" + traceback.format_exc())
+    return _mpv or None
+
+
+def refresh_devices():
+    """Ask mpv which outputs exist. Takes a moment, so runs in the background
+    at startup."""
+    global _devices
+    mpv = mpv_command()
+    if not mpv:
+        return
+    cmd, env = mpv
+    try:
+        out = subprocess.run(cmd + ["--no-config", "--audio-device=help"], env=env,
+                             capture_output=True, text=True, timeout=10, **_no_window)
+    except Exception:
+        log("listing devices failed:\n" + traceback.format_exc())
+        return
+    found = {}
+    for device, name in re.findall(r"'([^'/]+/[^']+)' \((.+)\)", out.stdout):
+        found.setdefault(name, device)
+    _devices = found
 
 
 def output_devices():
-    """Names of the speakers and headphones Qt can play to."""
-    try:
-        from PyQt6.QtMultimedia import QMediaDevices
-        return [d.description() for d in QMediaDevices.audioOutputs()]
-    except Exception:
-        return []
+    """Names of the speakers and headphones mpv can play to."""
+    refresh_devices()
+    return list(_devices)
 
 
 def chosen_device(cfg=None):
-    """The QAudioDevice picked in Settings, or None for the system default
-    (also when the picked one isn't plugged in right now)."""
-    name = str((cfg or get_config()).get("sound_device") or "")
-    if not name:
-        return None
-    try:
-        from PyQt6.QtMultimedia import QMediaDevices
-        for device in QMediaDevices.audioOutputs():
-            if device.description() == name:
-                return device
-    except Exception:
-        pass
-    return None
+    """The mpv id of the device picked in Settings, or None for the system
+    default (also when the picked one isn't connected right now)."""
+    return _devices.get(str((cfg or get_config()).get("sound_device") or ""))
 
 
 def load_sounds(cfg=None):
-    global _sound_ok
-    _effects.clear()
-    try:
-        from PyQt6.QtMultimedia import QSoundEffect
-    except Exception:
-        _sound_ok = False
-        log("QtMultimedia not available.\n" + traceback.format_exc())
-        return
+    global _device, _volume
     cfg = cfg or get_config()
-    volume = _num(cfg.get("sound_volume"), 0.3, 0.0, 1.0)
-    device = chosen_device(cfg)
-    for key in KEYS + (FINISH,):
-        path = sound_path(key)
-        if not path:
-            continue
-        players = []
-        for _ in range(2):
-            effect = QSoundEffect(mw)
-            if device is not None:
-                effect.setAudioDevice(device)
-            effect.setSource(QUrl.fromLocalFile(path))
-            effect.setVolume(volume)
-            players.append(effect)
-        _effects[key] = players
-        _next[key] = 0
-    _sound_ok = True
+    _volume = _num(cfg.get("sound_volume"), 0.3, 0.0, 1.0)
+    _device = chosen_device(cfg) or ""
 
 
 def set_native_volume(volume):
-    for players in _effects.values():
-        for effect in players:
-            effect.setVolume(volume)
+    global _volume
+    _volume = volume
+
+
+def _run_mpv(path, device, volume):
+    cmd, env = mpv_command()
+    # mpv's volume is cubic; the setting is linear
+    args = cmd + ["--no-config", "--no-video", "--no-terminal", "--force-window=no",
+                  "--audio-display=no", f"--volume={round(100 * volume ** (1 / 3))}"]
+    try:
+        if device:
+            done = subprocess.run(args + [f"--audio-device={device}", "--", path], env=env,
+                                  timeout=15, **_no_window)
+            if done.returncode == 0:
+                return
+        # no device picked, or it has gone away since
+        subprocess.run(args + ["--", path], env=env, timeout=15, **_no_window)
+    except Exception:
+        log("play failed:\n" + traceback.format_exc())
 
 
 def play_native(key):
-    if _sound_ok is None:
-        load_sounds()
-    players = _effects.get(key)
-    if not players:
-        return
-    try:
-        i = _next[key]
-        _next[key] = (i + 1) % len(players)
-        players[i].play()
-    except Exception:
-        log("play failed:\n" + traceback.format_exc())
+    path = sound_path(key)
+    if path and mpv_command():
+        threading.Thread(target=_run_mpv, args=(path, _device, _volume), daemon=True).start()
 
 
 def press(ease):
@@ -414,9 +428,15 @@ def _side(answer_shown):
         web.eval(f"window.fgSide && window.fgSide({str(answer_shown).lower()});")
 
 
+def _devices_ready(_future):
+    load_sounds()
+    push_config_to_reviewer()
+
+
 def on_profile_open():
     load_sounds()
     sync_menu()
+    mw.taskman.run_in_background(refresh_devices, _devices_ready)
 
 
 # ---------------------------------------------------------------- deck finished

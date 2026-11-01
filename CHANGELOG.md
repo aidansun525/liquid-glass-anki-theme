@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.1
+
+- Fixed: Anki could quit unexpectedly on Mac when a speaker or headphones disconnected, such as AirPods switching away or running out of battery, or when the Mac's sound output changed. The cause was a bug in Qt's audio code. The add-on no longer uses that code: piano notes that don't play inside the review page (a speaker chosen in Play on, the Listen buttons, the deck-done chime) now use the audio player built into Anki, in its own separate process.
+- With a speaker chosen in Play on, the note now starts about 0.2 seconds after you answer. With System default, it's as instant as before.
+
 ## 1.4
 
 - New: move the card up or down (Settings → Glass & sound → Distance from top).

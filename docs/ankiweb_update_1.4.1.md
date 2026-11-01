@@ -1,4 +1,9 @@
-## What's new in 1.4
+## What's new in 1.4.1
+
+- **Crash fix for Mac:** Anki could quit unexpectedly when headphones or a speaker disconnected, for example AirPods switching away. The piano notes now play through Anki's own audio player, so this can't happen any more.
+- **Speaker choice:** if you pick a speaker in *Play on*, the note starts about 0.2 seconds after you answer. Choose *System default* for an instant note.
+
+## 1.4
 
 - **Move the card up or down:** Settings → Glass & sound → *Distance from top*.
 - **Deck-done chime:** a soft piano chime, in the same tone as the answer notes, when you finish a deck. It doesn't play if you leave early, and it follows the Piano note switch, volume and speaker choice.
